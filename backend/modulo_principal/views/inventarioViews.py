@@ -6,33 +6,32 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.db.models import Q, Case, When, Value, BooleanField, Sum, F
 
-from ..models import Producto, Laboratorio, Lote
+from ..models import Producto, Lote, Categoria
 from ..serializers import (
     ProductoSerializer,
-    LaboratorioSerializer,
-    LoteSerializer
+    LoteSerializer,
+    CategoriaSerializer
 )
 
 # ---------------------------------------------------------
-# 1. LABORATORIOS
+# 1. CATEGORÍAS
 # ---------------------------------------------------------
-class LaboratorioViewSet(viewsets.ModelViewSet):
-    permission_classes = [AllowAny] # quitar en produccion
-    authentication_classes = [] # quitar en produccion
+class CategoriaViewSet(viewsets.ModelViewSet):
+    permission_classes = [AllowAny]
+    authentication_classes = [] # Corregido el typo aquí
 
-    queryset = Laboratorio.objects.all()
-    serializer_class = LaboratorioSerializer
-    
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['nombre', 'telefono'] # Agregué teléfono por si acaso
-    ordering_fields = ['nombre']
-    ordering = ['nombre']
+    queryset = Categoria.objects.all() # Faltaba esto! Fundamental para que el ViewSet sepa qué buscar
+    serializer_class = CategoriaSerializer
 
-    @action(detail=False, methods=['get'], pagination_class=None)
-    def simple_list(self, request):
-        # Optimización: values() trae un dict, es mucho más rápido que serializar objetos completos
-        data = self.queryset.values('id', 'nombre')
-        return Response(list(data))
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter] # Corregido SerchFilter
+
+    # Quité 'activo' del search porque es booleano, se busca mejor con filterset_fields
+    search_fields = ['nombre', 'descripcion'] 
+
+    filterset_fields = {
+        'activo': ['exact'],
+    }
+    ordering_fields = ['nombre', 'descripcion']
 
 
 # ---------------------------------------------------------
@@ -44,25 +43,17 @@ class ProductoViewSet(viewsets.ModelViewSet):
 
     serializer_class = ProductoSerializer
     
-    # Configuración de Filtros Potenciada
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
-    # 1. Búsqueda Texto (Smart Filter input texto)
-    search_fields = ['nombre', 'codigo_serie', 'laboratorio__nombre', 'descripcion','cantidad_mg','cantidad_capsulas']
+    # Añadimos categoria__nombre para que puedan buscar "Audífonos" y salgan todos
+    search_fields = ['nombre', 'codigo_serie', 'descripcion', 'categoria__nombre']
     
-    # 2. Filtros Estructurados (Smart Filter selects/rangos)
-    # Usamos diccionario para permitir rangos (gte=desde, lte=hasta)
     filterset_fields = {
-        'laboratorio': ['exact'],
         'activo': ['exact'],
-        'es_bioequivalente': ['exact'],
-        'cantidad_mg': ['gte', 'lte', 'exact'],
-        'cantidad_capsulas':['gte','lte','exact'] 
-        # Permite filtrar "más de 500mg"
+        'categoria': ['exact'], # Permite filtrar por ID de categoría en el frontend
     }
     
-    # 3. Ordenamiento manual (Click en cabeceras de tabla)
-    ordering_fields = ['nombre', 'precio_venta', 'cantidad_mg', 'laboratorio__nombre']
+    ordering_fields = ['nombre', 'precio_venta']
 
     def get_queryset(self):
         """
@@ -71,24 +62,20 @@ class ProductoViewSet(viewsets.ModelViewSet):
         2. Prioridad: Con Stock (Calculado al vuelo)
         3. Alfabético
         """
-        qs = Producto.objects.select_related('laboratorio')
+        # Agregamos select_related('categoria') para optimizar la consulta a la BD
+        qs = Producto.objects.select_related('categoria').all()
         
-        # Anotamos el stock total sumando lotes activos
-        # Coalesce(Sum(...), 0) se asegura de que si no hay lotes devuelva 0 en vez de None
         qs = qs.annotate(
             total_stock_disponible=Sum(
                 'lotes__cantidad', 
-                filter=Q(lotes__activo=True, lotes__defectuoso=False)
+                filter=Q(lotes__activo=True)
             )
         )
         
-        # Lógica de Ordenamiento por defecto:
-        # Primero los ACTIVOS, luego los que tienen MÁS STOCK, luego por NOMBRE
         return qs.order_by('-activo', F('total_stock_disponible').desc(nulls_last=True), 'nombre')
 
     @action(detail=False, methods=['get'], pagination_class=None)
     def simple_list(self, request):
-        # Optimizado con values()
         data = Producto.objects.values('id', 'nombre')
         return Response(list(data))
 
@@ -102,38 +89,24 @@ class LoteViewSet(viewsets.ModelViewSet):
     
     serializer_class = LoteSerializer
     
-    # Bloqueamos DELETE directo en la API por seguridad (ya lo tienes en el modelo, pero doble capa)
-    # http_method_names = ['get', 'post', 'put', 'patch', 'head', 'options'] 
-    # (Comentado porque en desarrollo quizás quieras borrar, descomentar en prod)
-
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
-    # Búsqueda por código (faltaba esto para tu buscador)
     search_fields = ['codigo_lote', 'producto__nombre']
 
-    # Filtros potentes para fechas
     filterset_fields = {
         'producto': ['exact'],
-        'defectuoso': ['exact'],
         'activo': ['exact'],
-        'fecha_vencimiento': ['gte', 'lte'], # Vital para "Ver lotes que vencen este mes"
+        'fecha_vencimiento': ['gte', 'lte'], 
         'fecha_creacion': ['gte', 'lte'],
-        'cantidad': ['gte', 'lte'], # Para ver "Lotes con poco stock"
+        'cantidad': ['gte', 'lte'], 
     }
 
     ordering_fields = ['fecha_vencimiento', 'fecha_creacion', 'cantidad']
 
     def get_queryset(self):
-        """
-        Smart Sorting Lotes:
-        1. Lotes NO Defectuosos primero.
-        2. Lotes Activos primero.
-        3. Los que vencen ANTES primero (urgencia).
-        """
         return Lote.objects.select_related('producto').order_by(
-            'defectuoso', # False (0) va antes que True (1) -> Sanos primero
-            '-activo',    # True va antes que False -> Activos primero
-            'fecha_vencimiento' # Ascendente -> Los que vencen pronto arriba
+            '-activo',    
+            'fecha_vencimiento' 
         )
 
 
@@ -142,7 +115,7 @@ class LoteViewSet(viewsets.ModelViewSet):
 # ---------------------------------------------------------
 class GlobalSearchView(APIView):
     """
-    Busca simultáneamente en Productos, Lotes y Laboratorios.
+    Busca simultáneamente en Productos, Lotes y Categorías.
     """
     permission_classes = [AllowAny] 
     authentication_classes = []
@@ -153,29 +126,34 @@ class GlobalSearchView(APIView):
         if len(query) < 3:
             return Response([]) 
 
-        # Optimizamos consultas con select_related y values para traer solo lo necesario
+        # CATEGORÍAS (Nuevo)
+        categorias = Categoria.objects.filter(
+            nombre__icontains=query
+        ).only('id', 'nombre')[:3]
+
         # PRODUCTOS
         productos = Producto.objects.filter(
             Q(nombre__icontains=query) | 
-            Q(codigo_serie__icontains=query) | 
-            Q(laboratorio__nombre__icontains=query)
-        ).select_related('laboratorio').only('id', 'nombre', 'cantidad_mg', 'laboratorio__nombre', 'codigo_serie')[:5]
+            Q(codigo_serie__icontains=query) 
+        ).select_related('categoria').only('id', 'nombre', 'codigo_serie', 'precio_venta', 'categoria__nombre')[:3]
 
         # LOTES
         lotes = Lote.objects.filter(
             codigo_lote__icontains=query
         ).select_related('producto').only('id', 'codigo_lote', 'fecha_vencimiento', 'producto__nombre')[:5]
 
-        # LABORATORIOS
-        laboratorios = Laboratorio.objects.filter(
-            nombre__icontains=query
-        ).only('id', 'nombre', 'telefono')[:5]
-
         data = {
+            'categorias': [{
+                'id': c.id,
+                'titulo': c.nombre,
+                'subtitulo': "Categoría",
+                'extra': ""
+            } for c in categorias],
+
             'productos': [{
                 'id': p.id,
                 'titulo': p.nombre,
-                'subtitulo': f"{p.cantidad_mg}mg - {p.laboratorio.nombre}",
+                'subtitulo': f"Precio: ${p.precio_venta}",
                 'extra': p.codigo_serie
             } for p in productos],
             
@@ -184,14 +162,7 @@ class GlobalSearchView(APIView):
                 'titulo': f"Lote: {l.codigo_lote}",
                 'subtitulo': f"Vence: {l.fecha_vencimiento}",
                 'extra': l.producto.nombre
-            } for l in lotes],
-            
-            'laboratorios': [{
-                'id': l.id,
-                'titulo': l.nombre,
-                'subtitulo': l.telefono or "Sin teléfono",
-                'extra': ''
-            } for l in laboratorios]
+            } for l in lotes]
         }
 
         return Response(data)

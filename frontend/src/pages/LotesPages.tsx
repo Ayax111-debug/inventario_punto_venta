@@ -136,8 +136,8 @@ const LotesPage = () => {
                 
                 {/* Header */}
                 <div className="flex bg-white p-5 rounded-sm shadow-md justify-between items-center mb-6 ">
-                    <h1 className="text-3xl font-bold text-gray-700">Maestro de lotes</h1>
-                    <AddButton label='Agregar Lote' onClick={handleCreate}/>
+                    <h1 className="text-3xl font-bold text-gray-700">STOCK GENERAL DE PRODUCTOS</h1>
+                    <AddButton label='Agregar nuevo stock' onClick={handleCreate}/>
                 </div>
 
                 {/* --- SMART FILTER --- */}
@@ -180,7 +180,7 @@ const LotesPage = () => {
                 <Modal
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}
-                    title={editingLote ? "Editar Lote" : "Nuevo Lote"}
+                    title={editingLote ? "Editar Stock" : "Nuevo Stock"}
                 >
                     {fetchingSingle ? (
                         <div className="flex flex-col items-center justify-center p-8">

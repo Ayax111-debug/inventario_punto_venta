@@ -3,80 +3,90 @@ from django.db import transaction
 from faker import Faker
 import random
 from datetime import timedelta
-from django.utils import timezone
-# CAMBIA ESTO POR TUS MODELOS REALES
-from modulo_principal.models import Laboratorio, Producto, Lote
+
+# Asegúrate de que la ruta de importación sea la correcta para tu app
+from modulo_principal.models import Producto, Lote, Categoria
 
 class Command(BaseCommand):
-    help = 'Seed de alto rendimiento (Bulk Create)'
+    help = 'Seed de alto rendimiento para tienda de electrónica (Bulk Create) con Categorías consistentes'
 
     def handle(self, *args, **kwargs):
         fake = Faker('es_CL')
-        self.stdout.write(self.style.WARNING('Iniciando SEED MASIVO (Modo Turbo)...'))
+        self.stdout.write(self.style.WARNING('Iniciando SEED MASIVO (Modo Electrónica v2)...'))
 
-        # Cantidades
-        CANT_LABS = 1000       # No necesitas tantos laboratorios
-        CANT_PRODS = 50000     # 50k productos
-        CANT_LOTES = 150000    # 150k lotes (Total ~200k registros)
+        # Cantidades (ajustables)
+        CANT_PRODS = 5000     # 5k productos
+        CANT_LOTES = 15000    # 15k lotes 
 
         with transaction.atomic():
             # ==========================================
-            # 1. LABORATORIOS (Bulk Create)
+            # 1. CATEGORÍAS
             # ==========================================
-            self.stdout.write(f'Generando {CANT_LABS} laboratorios en memoria...')
-            labs_buffer = []
-            for _ in range(CANT_LABS):
-                labs_buffer.append(
-                    Laboratorio(
-                        nombre=f"Laboratorio {fake.unique.company()}",
-                        direccion=fake.address(),
-                        telefono=fake.phone_number()[:15]
-                    )
-                )
+            self.stdout.write('Generando Categorías maestras...')
             
-            # INSERT MASIVO 1
-            Laboratorio.objects.bulk_create(labs_buffer, batch_size=1000)
-            self.stdout.write(self.style.SUCCESS('✓ Laboratorios insertados.'))
+            # Diccionario que mapea Categorías con los tipos de productos que le corresponden
+            mapa_categorias = {
+                'Audio y Sonido': ['Audífonos Inalámbricos', 'Audífonos Gamer', 'Parlante Bluetooth', 'Barra de Sonido'],
+                'Micrófonos y Streaming': ['Micrófono Condensador', 'Micrófono Corbatero', 'Brazo Articulado para Micrófono'],
+                'Periféricos PC': ['Mouse Inalámbrico', 'Mouse Gamer Óptico', 'Teclado Mecánico RGB', 'Teclado Membrana'],
+                'Carga y Energía': ['Cargador Carga Rápida 20W', 'Cargador Tipo C', 'Powerbank 10000mAh', 'Powerbank 20000mAh'],
+                'Cables y Adaptadores': ['Cable USB-C a USB-C', 'Cable HDMI 2.1', 'Adaptador Hub USB-C', 'Cable de Red Cat6'],
+                'Monitores y Pantallas': ['Monitor 24" FHD', 'Monitor Gamer 144Hz', 'Soporte para Monitor Doble'],
+                'Almacenamiento': ['Pendrive 64GB', 'Disco Duro Externo 1TB', 'SSD NVMe 500GB', 'MicroSD 128GB'],
+                'Redes y Conectividad': ['Router WiFi 6', 'Repetidor de Señal', 'Adaptador Bluetooth USB'],
+                'Accesorios Notebook': ['Funda para Notebook', 'Base Refrigerante', 'Candado de Seguridad'],
+                'Smart Home': ['Ampolleta Inteligente WiFi', 'Enchufe Inteligente', 'Cámara de Seguridad IP']
+            }
 
-            # TRUCO PRO: Recuperamos solo los IDs para no llenar la RAM con objetos pesados
-            lab_ids = list(Laboratorio.objects.values_list('id', flat=True))
+            categorias_creadas = {}
+            for nombre_cat in mapa_categorias.keys():
+                cat, _ = Categoria.objects.get_or_create(
+                    nombre=nombre_cat,
+                    defaults={'descripcion': f"Productos de la categoría {nombre_cat}"}
+                )
+                categorias_creadas[nombre_cat] = cat
+                
+            self.stdout.write(self.style.SUCCESS(f'✓ {len(categorias_creadas)} Categorías creadas.'))
 
             # ==========================================
-            # 2. PRODUCTOS (Bulk Create)
+            # 2. PRODUCTOS (Electrónica)
             # ==========================================
-            self.stdout.write(f'Generando {CANT_PRODS} productos en memoria...')
+            self.stdout.write(f'Generando {CANT_PRODS} productos electrónicos en memoria...')
             prods_buffer = []
-            nombres_medicina = ['Paracetamol', 'Ibuprofeno', 'Amoxicilina', 'Clorfenamina', 
-                              'Losartán', 'Metformina', 'Omeprazol', 'Salbutamol']
+            
+            marcas = ['Sony', 'Logitech', 'JBL', 'Razer', 'Samsung', 'Anker', 'HyperX', 'Corsair', 'Apple', 'Redragon', 'Kingston', 'Tp-Link']
 
             for _ in range(CANT_PRODS):
-                # Asignamos ID directamente para evitar queries extra
-                lab_id = random.choice(lab_ids) 
-                nombre_prod = f"{random.choice(nombres_medicina)} {fake.last_name()} {random.randint(100,999)}"
+                # 1. Elegimos una categoría al azar
+                nombre_categoria_elegida = random.choice(list(mapa_categorias.keys()))
+                categoria_obj = categorias_creadas[nombre_categoria_elegida]
+                
+                # 2. Elegimos un producto que pertenezca SOLAMENTE a esa categoría
+                tipo_producto = random.choice(mapa_categorias[nombre_categoria_elegida])
+                
+                # Ejemplo: "Teclado Mecánico RGB Logitech RX-450"
+                nombre_prod = f"{tipo_producto} {random.choice(marcas)} {fake.bothify(text='??-###').upper()}"
 
                 prods_buffer.append(
                     Producto(
-                        laboratorio_id=lab_id, # Usamos _id para asignar el entero directo
+                        categoria=categoria_obj, # Asignamos la FK de forma consistente
                         nombre=nombre_prod,
-                        descripcion=fake.text(max_nb_chars=60),
-                        cantidad_mg=random.choice([10, 50, 100, 500, 1000]),
-                        cantidad_capsulas=random.choice([10, 20, 30, 60]),
-                        es_bioequivalente=random.choice([True, False]),
-                        codigo_serie=fake.ean13(),
-                        precio_venta=random.randint(1000, 25000),
+                        descripcion=fake.text(max_nb_chars=100),
+                        codigo_serie=fake.unique.ean13(), 
+                        precio_venta=random.randint(5000, 150000), 
                         activo=True
                     )
                 )
 
-            # INSERT MASIVO 2
-            Producto.objects.bulk_create(prods_buffer, batch_size=5000)
-            self.stdout.write(self.style.SUCCESS('✓ Productos insertados.'))
+            # INSERT MASIVO 1
+            Producto.objects.bulk_create(prods_buffer, batch_size=2000)
+            self.stdout.write(self.style.SUCCESS('✓ Productos insertados con su categoría correcta.'))
 
-            # Recuperamos IDs de productos
+            # Recuperamos los IDs recién creados
             prod_ids = list(Producto.objects.values_list('id', flat=True))
 
             # ==========================================
-            # 3. LOTES (Bulk Create)
+            # 3. LOTES
             # ==========================================
             self.stdout.write(f'Generando {CANT_LOTES} lotes en memoria...')
             lotes_buffer = []
@@ -84,8 +94,9 @@ class Command(BaseCommand):
             for _ in range(CANT_LOTES):
                 prod_id = random.choice(prod_ids)
                 fecha_creacion = fake.date_between(start_date='-2y', end_date='today')
-                dias_vencimiento = random.randint(365, 1095)
-                fecha_vencimiento = fecha_creacion + timedelta(days=dias_vencimiento)
+                
+                dias_garantia = random.randint(365, 1095) 
+                fecha_vencimiento = fecha_creacion + timedelta(days=dias_garantia)
 
                 lotes_buffer.append(
                     Lote(
@@ -93,14 +104,13 @@ class Command(BaseCommand):
                         codigo_lote=f"L-{fake.bothify(text='????-####').upper()}",
                         fecha_creacion=fecha_creacion,
                         fecha_vencimiento=fecha_vencimiento,
-                        cantidad=random.randint(50, 5000),
-                        defectuoso=random.choice([True, False, False, False]),
+                        cantidad=random.randint(10, 300), 
                         activo=True
                     )
                 )
 
-            # INSERT MASIVO 3 (Aquí es donde Docker suele sufrir si no usas batch_size)
-            Lote.objects.bulk_create(lotes_buffer, batch_size=5000)
+            # INSERT MASIVO 2
+            Lote.objects.bulk_create(lotes_buffer, batch_size=2000)
             self.stdout.write(self.style.SUCCESS('✓ Lotes insertados.'))
 
-        self.stdout.write(self.style.SUCCESS(f'🚀 SEED FINALIZADO: ~{CANT_LABS + CANT_PRODS + CANT_LOTES} registros creados.'))
+        self.stdout.write(self.style.SUCCESS(f'🚀 SEED FINALIZADO: {len(categorias_creadas)} Categorías, {CANT_PRODS} Productos y {CANT_LOTES} Lotes creados con éxito.'))

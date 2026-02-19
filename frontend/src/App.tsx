@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
-import  LaboratoriosPage  from './pages/LaboratoriosPage';
 import { ComponentsShowcase } from './pages/ComponentsShowcase';
 import { authService } from './services/auth.service'; // Tu función que llama a /api/me/
 import ProductosPage from './pages/ProductosPage';
 import LotesPage from './pages/LotesPages';
 import POSPage from './pages/POSpage';
-
+import CategoriasPage from './pages/CategoriaPage';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -76,9 +75,6 @@ function App() {
           element={<Navigate to={user ? "/showcase" : "/login"} />} 
         />
 
-        <Route path="/laboratorios" 
-        element={user ? <LaboratoriosPage /> : <Navigate to="/login" />}
-        />
 
         <Route path="/productos" 
         element={user ? <ProductosPage /> : <Navigate to="/login" />}
@@ -86,7 +82,9 @@ function App() {
         <Route path="/lotes" 
         element={user ? <LotesPage /> : <Navigate to="/login" />}
         />
-
+        <Route path = "/categorias"
+        element={user ? <CategoriasPage/> : <Navigate to = "/categorias"/>}
+        />
       </Routes>
 
     </BrowserRouter>

@@ -44,16 +44,10 @@ export const ProductoTable = ({ data, onDelete, onEdit }: Props) => {
                                     {prod.codigo_serie}
                                 </td>
 
-                                {/* Columna Nombre y Descripción Corta */}
-                                <td className="px-6 py-4">
-                                    <div className="text-sm font-medium text-gray-900">{prod.nombre}</div>
-                                    <div className="text-xs text-gray-500">
-                                        {prod.cantidad_mg}mg - {prod.cantidad_capsulas} un. 
-                                        {/* Nota: Aquí mostramos el ID del lab por ahora. Idealmente traer el nombre */}
-                                        <span className="ml-1 text-blue-500">(Lab ID: {prod.laboratorio})</span>
-                                    </div>
+                                <td className='px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600'>
+                                    {prod.nombre}
                                 </td>
-
+                    
                                 {/* Columna Precio */}
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
                                     {formatPrice(prod.precio_venta)}

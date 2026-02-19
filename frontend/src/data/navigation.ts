@@ -1,7 +1,7 @@
 export const NAV_LINKS = [
     {label: 'Inicio',path: '/'},
-    {label: 'Laboratorios',path: '/laboratorios'},
     {label: 'Productos',path: '/productos'},
     {label: 'lotes',path: '/lotes'},
-    {label: 'Ventas',path: 'Ventas'},
+    {label: 'categorias',path: '/categorias'},
+    {label: 'Ventas',path: '/pos'},
 ]

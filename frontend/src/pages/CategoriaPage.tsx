@@ -1,115 +1,101 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useProductos } from '../hooks/inventario/useProducto';
-import { ProductoForm } from '../components/organisms/Producto/ProductoForm';
-import { ProductoTable } from '../components/organisms/Producto/ProductoTable';
+import { useCategorias } from '../hooks/inventario/useCategoria';
+import { CategoriaForm } from '../components/organisms/Categoria/CategoriaForm';
+import { CategoriaTable } from '../components/organisms/Categoria/CategoriaTable';
 import { MainTemplate } from '../components/templates/MainTemplate';
 import { Modal } from '../components/molecules/Modal';
 import { Paginator } from '../components/molecules/Paginator';
 import { SmartFilter, type FilterConfig } from '../components/organisms/SmartFilter/SmartFilter';
-import { productoService } from '../services/producto.service'; 
+import { categoriaService } from '../services/categoria.service'; 
 import { AddButton } from '../components/atoms/Button/AddButton';
-import { type Producto } from '../domain/models/Producto';
+import { type Categoria } from '../domain/models/Categoria';
 
-const ProductosPage = () => {
+const CategoriasPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // 1. ESTADO PARA FILTROS
     const [currentFilters, setCurrentFilters] = useState<Record<string, any>>({});
 
-    // 2. HOOK DE PRODUCTOS (Ahora recibe filtros)
     const { 
-        productos, loading, error, pagination,
-        crearProducto, eliminarProducto, actualizarProducto,
-    } = useProductos(currentFilters);
-
-   
+        categorias, loading, error, pagination,
+        crearCategoria, eliminarCategoria, actualizarCategoria,
+    } = useCategorias(currentFilters);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingProd, setEditingProd] = useState<Producto | null>(null);
+    const [editingCat, setEditingCat] = useState<Categoria | null>(null);
     const [fetchingSingle, setFetchingSingle] = useState(false); 
 
-    // ---------------------------------------------
-    // 3. CONFIGURACIÓN DEL SMART FILTER
-    // ---------------------------------------------
     const filterConfig: FilterConfig[] = useMemo(() => [
         { 
             key: 'search', 
-            label: 'Buscar (Nombre/SKU)', 
+            label: 'Buscar Nombre/Descripción', 
             type: 'text' 
         },
-
         { 
             key: 'activo', 
             label: 'Estado', 
             type: 'boolean' 
         },
-       
-        
-       
     ], []);
 
     const handleFilterChange = (newFilters: Record<string, any>) => {
         setCurrentFilters(newFilters);
-        pagination.goToPage(1); // Reset a pág 1 al filtrar
+        pagination.goToPage(1); 
     };
 
-    // ---------------------------------------------
-    // 4. LÓGICA DE URL Y MODAL (Optimizada)
-    // ---------------------------------------------
     useEffect(() => {
         const editId = searchParams.get('editar');
         if (!editId) {
-            setEditingProd(null)
+            setEditingCat(null)
             setIsModalOpen(false)
-            return;}
+            return;
+        }
         
         const idToFind = Number(editId);
 
-        // Guardia de seguridad para evitar re-renders infinitos o lag
-        if (isModalOpen && editingProd?.id === idToFind) return;
+        if (isModalOpen && editingCat?.id === idToFind) return;
 
-        const productoEnLista = productos.find(p => p.id === idToFind); 
+        const categoriaEnLista = categorias.find(c => c.id === idToFind); 
 
-        if (productoEnLista) {
-            setEditingProd(productoEnLista);
+        if (categoriaEnLista) {
+            setEditingCat(categoriaEnLista);
             setIsModalOpen(true);
         } else {
             setFetchingSingle(true);
-            productoService.getById(idToFind)
-                .then((ProductoDesdeApi) => {
-                    setEditingProd(ProductoDesdeApi);
+            categoriaService.getById(idToFind)
+                .then((CatDesdeApi) => {
+                    setEditingCat(CatDesdeApi);
                     setIsModalOpen(true);
                 })
                 .catch(() => setSearchParams({}))
                 .finally(() => setFetchingSingle(false));
         }
-    }, [searchParams, productos.length]);
+    }, [searchParams, categorias.length]);
 
     const handleCreate = () => {
-        setEditingProd(null);
+        setEditingCat(null);
         setIsModalOpen(true);
         setSearchParams({});
     };
 
-    const handleEdit = (prod: Producto) => {
-        if (!prod.id) return; 
-        setEditingProd(prod);
+    const handleEdit = (cat: Categoria) => {
+        if (!cat.id) return; 
+        setEditingCat(cat);
         setIsModalOpen(true);
-        setSearchParams({ editar: prod.id.toString() });
+        setSearchParams({ editar: cat.id.toString() });
     };
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
-        setEditingProd(null);
+        setEditingCat(null);
         setSearchParams({}); 
     };
 
-    const handleSubmit = async (formData: Producto) => {
-        if (editingProd?.id) {
-            await actualizarProducto(editingProd.id, formData);
+    const handleSubmit = async (formData: Categoria) => {
+        if (editingCat?.id) {
+            await actualizarCategoria(editingCat.id, formData);
         } else {
-            await crearProducto(formData);
+            await crearCategoria(formData);
         }
         handleCloseModal();
     };
@@ -118,22 +104,19 @@ const ProductosPage = () => {
         <MainTemplate>
             <div className="max-w-6xl mx-auto p-6">
                 
-                {/* Header */}
                 <div className="flex bg-white p-5 rounded-sm shadow-md justify-between items-center mb-6 border border-gray-100">
-                    <h1 className="text-3xl font-bold text-gray-700">Maestro de productos</h1>
-                    <AddButton label='Agregar Producto' onClick={handleCreate}/>
+                    <h1 className="text-3xl font-bold text-gray-700">Maestro de Categorías</h1>
+                    <AddButton label='Nueva Categoría' onClick={handleCreate}/>
                 </div>
 
-                {/* Smart Filter */}
                 <SmartFilter 
                     config={filterConfig} 
                     onFilterChange={handleFilterChange} 
                 />
 
-                {/* Feedback de Carga/Error */}
                 {fetchingSingle && (
                     <div className="fixed top-20 right-6 bg-yellow-50 text-yellow-700 px-4 py-2 rounded-lg shadow-lg border border-yellow-200 text-sm animate-pulse z-50">
-                        ⏳ Cargando datos del producto...
+                        ⏳ Cargando datos...
                     </div>
                 )}
                 
@@ -143,16 +126,15 @@ const ProductosPage = () => {
                     </div>
                 )}
 
-                {/* Tabla y Paginación */}
-                {loading && productos.length === 0 ? (
+                {loading && categorias.length === 0 ? (
                     <div className="p-10 text-center text-gray-500 animate-pulse font-medium">
-                        Cargando catálogo...
+                        Cargando categorías...
                     </div>
                 ) : (
                     <>
-                        <ProductoTable 
-                            data={productos} 
-                            onDelete={eliminarProducto} 
+                        <CategoriaTable 
+                            data={categorias} 
+                            onDelete={eliminarCategoria} 
                             onEdit={handleEdit}
                         />
                         
@@ -169,11 +151,10 @@ const ProductosPage = () => {
                     </>
                 )}
 
-                {/* Modal de Formulario */}
                 <Modal
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}
-                    title={editingProd ? "Editar Producto" : "Registrar Nuevo Producto"}
+                    title={editingCat ? "Editar Categoría" : "Registrar Nueva Categoría"}
                 >
                      {fetchingSingle ? (
                         <div className="flex flex-col items-center justify-center p-8">
@@ -181,11 +162,10 @@ const ProductosPage = () => {
                             <p className="mt-2 text-sm text-gray-500">Recuperando información...</p>
                         </div>
                     ) : (
-                        <ProductoForm 
+                        <CategoriaForm 
                             onSubmit={handleSubmit}
-                            initialData={editingProd}
+                            initialData={editingCat}
                             onCancel={handleCloseModal}
-                            
                         />
                     )}
                 </Modal>
@@ -194,4 +174,4 @@ const ProductosPage = () => {
     );
 };
 
-export default ProductosPage;
+export default CategoriasPage;

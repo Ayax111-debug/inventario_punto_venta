@@ -109,7 +109,7 @@ export const LoteForm = ({ onSubmit, initialData, onCancel }: Props) => {
     return (
         <div className="bg-white p-6 rounded-lg mb-6">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                {initialData ? 'Editar Lote' : 'Registrar Nuevo Lote'}
+                {initialData ? 'Editar stock' : 'Registrar Nueva carga de stock'}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -143,7 +143,7 @@ export const LoteForm = ({ onSubmit, initialData, onCancel }: Props) => {
 
                     {/* CÓDIGO LOTE */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Código Lote *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Código Stock</label>
                         <input
                             className={inputClass('codigo_lote')}
                             value={form.codigo_lote}

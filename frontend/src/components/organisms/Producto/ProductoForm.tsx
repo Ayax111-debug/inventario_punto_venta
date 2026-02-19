@@ -1,7 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { type Producto } from '../../../domain/models/Producto';
-import { type Laboratorio } from '../../../domain/models/laboratorio';
-import { SearchSelect } from '../../molecules/SearchSelect';
+// guardamos este import para las futuras categorias: import { SearchSelect } from '../../molecules/SearchSelect';
 import axios from 'axios';
 
 interface Props {
@@ -9,14 +8,11 @@ interface Props {
     onSubmit: (producto: Producto) => Promise<void | any>;
     initialData?: Producto | null;
     onCancel?: () => void;
-    listaLaboratorios: Laboratorio[];
 }
 
-export const ProductoForm = ({ onSubmit, initialData, onCancel, listaLaboratorios }: Props) => {
+export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
 
     const initialState: Producto = {
-        laboratorio: 0,
-        laboratorio_nombre: '',
         nombre: '',
         descripcion: '',
         cantidad_mg: 0,
@@ -61,12 +57,7 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel, listaLaboratorio
     // 3. HANDLESUBMIT REESTRUCTURADO
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        setErrors({}); // Limpiar errores previos
-        
-        // Validación local básica (opcional, Django hará la fuerte)
-        if (!form.nombre.trim() || form.laboratorio <= 0) {
-             // Puedes dejar esto o confiar full en el backend
-        }
+        setErrors({}); 
 
         setIsSubmitting(true);
 
@@ -129,7 +120,7 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel, listaLaboratorio
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
                         <input
                             className={inputClass('nombre')}
-                            placeholder="Ej: Paracetamol"
+                            placeholder="Ej: Audifonos samsung"
                             value={form.nombre}
                             onChange={e => handleChange('nombre', e.target.value)}
                             required
@@ -150,27 +141,7 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel, listaLaboratorio
                          {errors.codigo_serie && <span className="text-red-500 text-xs font-bold mt-1 block">{errors.codigo_serie[0]}</span>}
                     </div>
 
-                    {/* SEARCH SELECT LABORATORIO */}
-                    <div>
-                        <SearchSelect
-                            label="Laboratorio *"
-                            placeholder="Buscar laboratorio..."
-                            options={listaLaboratorios
-                                .filter(lab => lab.id !== undefined)
-                                .map(lab => ({ id: lab.id!, nombre: lab.nombre }))
-                            }
-                            selectedId={form.laboratorio}
-                            onChange={(newId: number) => {
-                                handleChange('laboratorio', newId);
-                                // Opcional: actualizar nombre si lo necesitas visualmente en otro lado
-                                const lab = listaLaboratorios.find(l => l.id === newId);
-                                if(lab) handleChange('laboratorio_nombre', lab.nombre);
-                            }}
-                            disabled={!!initialData}
-                        />
-                        {/* Error manual debajo del SearchSelect */}
-                        {errors.laboratorio && <span className="text-red-500 text-xs font-bold mt-1 block">{errors.laboratorio[0]}</span>}
-                    </div>
+                   
 
                     {/* PRECIO VENTA */}
                     <div>

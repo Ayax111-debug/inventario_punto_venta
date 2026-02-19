@@ -74,7 +74,7 @@ const POSPage = () => {
                  {/* Gran Total */}
                 <div className="flex justify-between items-end mb-6 bg-blue-50 p-4 rounded-lg border-2 border-blue-100">
                     <span className="text-xl uppercase text-blue-800">Total a Pagar:</span>
-                    <span className="text-5xl font-black text-blue-700">${cartTotal.toLocaleString()}</span>
+                    <span className="text-3xl font-black text-blue-700">${cartTotal.toLocaleString()}</span>
                 </div>
 
                 {/* Botón de Pago */}
