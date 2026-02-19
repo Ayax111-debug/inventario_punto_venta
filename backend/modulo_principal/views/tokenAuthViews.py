@@ -21,7 +21,7 @@ class CookieTokenObtainPairView(TokenObtainPairView):
             response.set_cookie(
                 key=settings.AUTH_COOKIE,
                 value=access_token,
-                domain="localhost",
+                domain="127.0.0.1",
                 httponly=settings.AUTH_COOKIE_HTTP_ONLY,
                 secure=settings.AUTH_COOKIE_SECURE,
                 samesite=settings.AUTH_COOKIE_SAMESITE,
@@ -31,7 +31,7 @@ class CookieTokenObtainPairView(TokenObtainPairView):
             response.set_cookie(
                 key=settings.AUTH_COOKIE_REFRESH,
                 value=refresh_token,
-                domain="localhost",
+                domain="127.0.0.1",
                 httponly=settings.AUTH_COOKIE_HTTP_ONLY,
                 secure=settings.AUTH_COOKIE_SECURE,
                 samesite=settings.AUTH_COOKIE_SAMESITE,
@@ -81,7 +81,7 @@ class CookieTokenRefreshView(TokenRefreshView):
         response.set_cookie(
             key=settings.AUTH_COOKIE,
             value=access_token,
-            domain="localhost", 
+            domain="127.0.0.1", 
             httponly=settings.AUTH_COOKIE_HTTP_ONLY,
             secure=settings.AUTH_COOKIE_SECURE,
             samesite=settings.AUTH_COOKIE_SAMESITE,

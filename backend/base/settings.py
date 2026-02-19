@@ -17,7 +17,7 @@ env_file = os.path.join(BASE_DIR, '.env')
 if os.path.exists(env_file):
     environ.Env.read_env(env_file)
 
-SECRET_KEY = env('SECRET_KEY', default='clave-insegura-ci-test')
+SECRET_KEY = env('SECRET_KEY',)
 DEBUG = True
 ALLOWED_HOSTS = env.list('ALLOWED_HOST', default=['127.0.0.1','localhost'])
 
@@ -52,9 +52,8 @@ MIDDLEWARE = [
 
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",
-    "http://localhost:5173",
-    "http://localhost:3000",
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:5173",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
