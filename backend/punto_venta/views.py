@@ -17,6 +17,9 @@ from django.db.models.functions import ExtractHour, Coalesce
 from django.shortcuts import render, get_object_or_404
 from rest_framework.pagination import PageNumberPagination
 
+
+
+
 class EstándarPagination(PageNumberPagination):
     page_size = 10 # Limite de 10 por página
     page_size_query_param = 'page_size'

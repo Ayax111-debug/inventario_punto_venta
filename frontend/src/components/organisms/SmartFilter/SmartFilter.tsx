@@ -31,7 +31,7 @@ export const SmartFilter = ({ config, onFilterChange }: Props) => {
     };
 
     return (
-        <div className="bg-white p-5 rounded-sm shadow-sm border border-gray-100 mb-6">
+        <div className="bg-slate-50 p-5 rounded-sm shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-gray-300 mb-6">
             <div className="flex flex-wrap gap-4 items-end">
                 
                 {/* Renderizado Dinámico de Filtros */}
@@ -47,7 +47,7 @@ export const SmartFilter = ({ config, onFilterChange }: Props) => {
                                 <div className="relative">
                                     <input 
                                         type="text"
-                                        className="w-full border border-gray-300 p-2 pl-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
+                                        className="w-full bg-white border border-gray-300 p-2 pl-3 rounded-lg text-sm focus:ring-2 focus:ring-green-100 focus:border-green-400 outline-none transition-all"
                                         placeholder={`Buscar...`}
                                         onChange={(e) => handleChange(field.key, e.target.value)}
                                     />
@@ -64,7 +64,7 @@ export const SmartFilter = ({ config, onFilterChange }: Props) => {
                                     {field.label}
                                 </label>
                                 <select 
-                                    className="w-full border border-gray-300 p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-100 outline-none cursor-pointer"
+                                    className="w-full border border-gray-300 p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-100 outline-none cursor-pointer"
                                     onChange={(e) => handleChange(field.key, e.target.value)}
                                 >
                                     <option value="">Todos</option>
@@ -84,7 +84,7 @@ export const SmartFilter = ({ config, onFilterChange }: Props) => {
                                     {field.label}
                                 </label>
                                 <select 
-                                    className="w-full border border-gray-300 p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-100 outline-none cursor-pointer"
+                                    className="w-full border border-gray-300 p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-100 outline-none cursor-pointer"
                                     onChange={(e) => handleChange(field.key, e.target.value)}
                                 >
                                     <option value="">Todos</option>
@@ -104,7 +104,7 @@ export const SmartFilter = ({ config, onFilterChange }: Props) => {
                                 </label>
                                 <input 
                                     type="date"
-                                    className="w-full border border-gray-300 p-2 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none"
+                                    className="w-full bg-white border border-gray-300 p-2 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-emerald-100 outline-none"
                                     onChange={(e) => handleChange(field.key, e.target.value)}
                                 />
                             </div>

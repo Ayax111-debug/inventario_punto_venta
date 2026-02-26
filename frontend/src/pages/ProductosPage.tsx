@@ -8,7 +8,7 @@ import { MainTemplate } from '../components/templates/MainTemplate';
 import { Modal } from '../components/molecules/Modal';
 import { Paginator } from '../components/molecules/Paginator';
 import { SmartFilter, type FilterConfig } from '../components/organisms/SmartFilter/SmartFilter';
-import { productoService } from '../services/producto.service'; 
+import { productoService } from '../services/producto.service';
 import { AddButton } from '../components/atoms/Button/AddButton';
 import { type Producto } from '../domain/models/Producto';
 import { categoriaService } from '../services/categoria.service';
@@ -18,19 +18,19 @@ const ProductosPage = () => {
 
     // 1. ESTADO PARA FILTROS
     const [currentFilters, setCurrentFilters] = useState<Record<string, any>>({});
-    
+
     // 2. ESTADO PARA CATEGORÍAS
-    const [categorias, setCategorias] = useState<any[]>([]); 
+    const [categorias, setCategorias] = useState<any[]>([]);
 
     // 3. HOOK DE PRODUCTOS (Recibe filtros)
-    const { 
+    const {
         productos, loading, error, pagination,
-        crearProducto, eliminarProducto, actualizarProducto,
+        crearProducto, eliminarProducto, actualizarProducto, clearError,
     } = useProductos(currentFilters);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProd, setEditingProd] = useState<Producto | null>(null);
-    const [fetchingSingle, setFetchingSingle] = useState(false); 
+    const [fetchingSingle, setFetchingSingle] = useState(false);
 
     // 4. EFECTO PARA CARGAR CATEGORÍAS
     useEffect(() => {
@@ -38,7 +38,7 @@ const ProductosPage = () => {
             .then((data) => {
                 if (data && data.results) {
                     setCategorias(data.results);
-                } 
+                }
                 else if (Array.isArray(data)) {
                     setCategorias(data);
                 }
@@ -56,12 +56,12 @@ const ProductosPage = () => {
             { key: 'search', label: 'Buscar (Nombre/SKU)', type: 'text' },
             { key: 'activo', label: 'Estado', type: 'boolean' },
             {
-                key: 'categoria', 
+                key: 'categoria',
                 label: 'Categoría',
                 type: 'select',
                 options: categoriasSeguras.map(cat => ({
                     id: cat.id,
-                    label: cat.nombre 
+                    label: cat.nombre
                 }))
             }
         ];
@@ -69,7 +69,7 @@ const ProductosPage = () => {
 
     const handleFilterChange = (newFilters: Record<string, any>) => {
         setCurrentFilters(newFilters);
-        pagination.goToPage(1); 
+        pagination.goToPage(1);
     };
 
     // ---------------------------------------------
@@ -82,13 +82,13 @@ const ProductosPage = () => {
             setIsModalOpen(false);
             return;
         }
-        
+
         const idToFind = Number(editId);
 
         // Prevenimos la recarga si el modal ya está abierto con el producto correcto
         if (isModalOpen && editingProd?.id === idToFind) return;
 
-        const productoEnLista = productos.find(p => p.id === idToFind); 
+        const productoEnLista = productos.find(p => p.id === idToFind);
 
         if (productoEnLista) {
             setEditingProd(productoEnLista);
@@ -103,7 +103,7 @@ const ProductosPage = () => {
                 .catch(() => setSearchParams({}))
                 .finally(() => setFetchingSingle(false));
         }
-    // 👇 Solo dependemos de la URL y si la lista creció/achicó
+        // 👇 Solo dependemos de la URL y si la lista creció/achicó
     }, [searchParams, productos.length]);
 
     const handleCreate = () => {
@@ -113,7 +113,7 @@ const ProductosPage = () => {
     };
 
     const handleEdit = (prod: Producto) => {
-        if (!prod.id) return; 
+        if (!prod.id) return;
         setEditingProd(prod);
         setIsModalOpen(true);
         setSearchParams({ editar: prod.id.toString() });
@@ -122,7 +122,7 @@ const ProductosPage = () => {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setEditingProd(null);
-        setSearchParams({}); 
+        setSearchParams({});
     };
 
     const handleSubmit = async (formData: Producto) => {
@@ -135,7 +135,7 @@ const ProductosPage = () => {
             handleCloseModal();
         } catch (error: any) {
             if (error.response?.status === 400) {
-                throw error; 
+                throw error;
             }
             alert("Ocurrió un error inesperado.");
         }
@@ -146,17 +146,17 @@ const ProductosPage = () => {
     return (
         <MainTemplate>
             <div className="max-w-6xl mx-auto p-6">
-                
+
                 {/* Header */}
-                <div className="flex bg-white p-5 rounded-sm shadow-md justify-between items-center mb-6 border border-gray-100">
+                <div className="flex bg-slate-50 p-5 rounded-sm shadow-[0_8px_30px_rgb(0,0,0,0.03)] justify-between items-center mb-6 border border-slate-300">
                     <h1 className="text-3xl font-bold text-gray-700">Maestro de productos</h1>
-                    <AddButton label='Agregar Producto' onClick={handleCreate}/>
+                    <AddButton label='Agregar Producto' onClick={handleCreate} />
                 </div>
 
                 {/* Smart Filter */}
-                <SmartFilter 
-                    config={filterConfig} 
-                    onFilterChange={handleFilterChange} 
+                <SmartFilter
+                    config={filterConfig}
+                    onFilterChange={handleFilterChange}
                 />
 
                 {/* Feedback de Carga/Error de Producto Individual */}
@@ -165,10 +165,20 @@ const ProductosPage = () => {
                         ⏳ Cargando datos del producto...
                     </div>
                 )}
-                
+
                 {error && (
-                    <div className="bg-red-100 text-red-700 p-4 mb-6 rounded border border-red-200">
-                        {error}
+                    <div className="bg-red-50 text-red-700 p-4 mb-6 rounded border border-red-200 flex justify-between items-start shadow-sm transition-all">
+                        <div className="flex items-center gap-2">
+                            
+                            <p className="font-medium text-sm">{error}</p>
+                        </div>
+                        <button
+                            onClick={clearError}
+                            className="text-red-500 hover:text-red-700 font-bold px-2"
+                            title="Cerrar mensaje"
+                        >
+                            ✕
+                        </button>
                     </div>
                 )}
 
@@ -179,14 +189,14 @@ const ProductosPage = () => {
                     </div>
                 ) : (
                     <>
-                        <ProductoTable 
-                            data={productos} 
-                            onDelete={eliminarProducto} 
+                        <ProductoTable
+                            data={productos}
+                            onDelete={eliminarProducto}
                             onEdit={handleEdit}
                         />
-                        
+
                         <div className="mt-4">
-                            <Paginator 
+                            <Paginator
                                 currentPage={pagination.page}
                                 totalPages={pagination.totalPages}
                                 onNext={pagination.nextPage}
@@ -204,13 +214,13 @@ const ProductosPage = () => {
                     onClose={handleCloseModal}
                     title={editingProd ? "Editar Producto" : "Registrar Nuevo Producto"}
                 >
-                     {fetchingSingle ? (
+                    {fetchingSingle ? (
                         <div className="flex flex-col items-center justify-center p-8">
                             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                             <p className="mt-2 text-sm text-gray-500">Recuperando información...</p>
                         </div>
                     ) : (
-                        <ProductoForm 
+                        <ProductoForm
                             onSubmit={handleSubmit}
                             initialData={editingProd}
                             onCancel={handleCloseModal}
@@ -218,7 +228,7 @@ const ProductosPage = () => {
                     )}
                 </Modal>
             </div>
-        </MainTemplate>   
+        </MainTemplate>
     );
 };
 

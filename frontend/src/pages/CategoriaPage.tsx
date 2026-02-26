@@ -104,7 +104,7 @@ const CategoriasPage = () => {
         <MainTemplate>
             <div className="max-w-6xl mx-auto p-6">
                 
-                <div className="flex bg-white p-5 rounded-sm shadow-md justify-between items-center mb-6 border border-gray-100">
+                <div className="flex bg-slate-50 p-5 rounded-sm shadow-[0_8px_30px_rgb(0,0,0,0.03)] justify-between items-center mb-6 border border-slate-300">
                     <h1 className="text-3xl font-bold text-gray-700">Maestro de Categorías</h1>
                     <AddButton label='Nueva Categoría' onClick={handleCreate}/>
                 </div>

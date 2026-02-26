@@ -11,7 +11,7 @@ export const LogoutButton = () =>{
         window.location.href='/login'
     };
     return(
-        <Button onClick={handleLogout} variant="outline">
+        <Button onClick={handleLogout} variant="destructive">
             Cerrar Sesión
         </Button>
     );

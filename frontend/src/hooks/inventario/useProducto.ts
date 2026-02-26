@@ -87,18 +87,25 @@ export const useProductos = (filters: Record<string, any> = {}) => {
             setLoading(false);
         }
     };
+   
+
     const eliminarProducto = async (id: number) => {
-        // Podrías añadir un confirm aquí si no lo tienes en el componente
+        setGlobalError(null); // Limpiamos cualquier error previo antes de intentar
         try {
             await productoService.delete(id);
-            // Si eliminamos el último de la página, fetchProductos lo manejará
             await fetchProductos(page, filters);
         } catch (err) {
-            // Capturamos el error de protección de Django si tiene lotes
-            if (axios.isAxiosError(err) && err.response?.status === 403) {
-                 alert("No se puede eliminar: Este producto tiene lotes asociados.");
+            // Verificamos si es un error de Axios
+            if (axios.isAxiosError(err) && err.response) {
+                // Capturamos el 400 que manda Django (ProtectedError)
+                if (err.response.status === 400 && err.response.data?.error) {
+                    // Guardamos el mensaje que viene desde el backend
+                    setGlobalError(`Reglas: ${err.response.data.error} Prefiera desactivar`);
+                } else {
+                    setGlobalError('Error al eliminar el producto. Intente nuevamente.');
+                }
             } else {
-                 setGlobalError('Error al eliminar producto');
+                setGlobalError('Error de conexión con el servidor.');
             }
         }
     };
@@ -108,6 +115,7 @@ export const useProductos = (filters: Record<string, any> = {}) => {
         productos,
         loading,
         error: globalError,
+        clearError: () => setGlobalError(null),
         pagination: {
             page,
             totalPages,

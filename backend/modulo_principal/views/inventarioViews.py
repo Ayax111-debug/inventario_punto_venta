@@ -5,6 +5,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.db.models import Q
+from django.db.models.deletion import ProtectedError
+from rest_framework import status
 
 from ..models import Producto, Categoria
 from ..serializers import (
@@ -66,6 +68,18 @@ class ProductoViewSet(viewsets.ModelViewSet):
         data = Producto.objects.values('id', 'nombre', 'stock_actual', 'precio_venta')
         return Response(list(data))
 
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError as e:
+            # Aquí personalizas el mensaje que verá el usuario
+            return Response(
+                {
+                    "error": "No se puede eliminar este producto porque tiene ventas asociadas.",
+                    "detalle": "Para mantener la integridad de tu historial contable, el sistema protege los productos que ya han sido vendidos."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 # ---------------------------------------------------------
 # 3. GLOBAL SEARCH

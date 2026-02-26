@@ -79,7 +79,7 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
     `;
 
     return (
-        <div className="bg-white p-6 rounded-sm mb-6">
+        <div className="bg-slate-50 p-6 rounded-sm mb-6">
             <h2 className="text-xl font-semibold mb-4 text-slate-800">
                 {initialData ? 'Editar Producto' : 'Registrar Nuevo Producto'}
             </h2>

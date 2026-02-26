@@ -41,10 +41,10 @@ const HistorialVentasPage = () => {
 
                 <SmartFilter config={filterConfig} onFilterChange={handleFilterChange} />
 
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mt-4">
+                <div className="bg-slate-50 rounded-sm shadow-sm border border-slate-300 overflow-hidden mt-4">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-slate-600">
-                            <thead className="bg-slate-50 text-slate-500 font-medium">
+                        <table className="min-w-full divide-y divide-slate-200 text-left text-sm text-slate-600">
+                            <thead className=" text-slate-500 font-medium ">
                                 <tr>
                                     <th className="px-6 py-4">Estado</th>
                                     <th className="px-6 py-4">Apertura</th>
@@ -54,14 +54,14 @@ const HistorialVentasPage = () => {
                                     <th className="px-6 py-4 text-center">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-200">
                                 {loading ? (
                                     <tr><td colSpan={6} className="text-center py-8">Cargando historial...</td></tr>
                                 ) : historial.length === 0 ? (
                                     <tr><td colSpan={6} className="text-center py-8 text-slate-400">No hay registros.</td></tr>
                                 ) : (
                                     historial.map((caja) => (
-                                        <tr key={caja.id} className="hover:bg-slate-50 transition-colors">
+                                        <tr key={caja.id} className="hover:bg-white transition-colors">
                                             <td className="px-6 py-4">
                                                 {caja.esta_abierta ? (
                                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">

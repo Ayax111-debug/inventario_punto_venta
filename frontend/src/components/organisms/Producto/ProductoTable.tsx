@@ -23,7 +23,7 @@ export const ProductoTable = ({ data, onDelete, onEdit }: Props) => {
     }
 
     return (
-        <div className="bg-white rounded-sm shadow-sm overflow-hidden border border-slate-200">
+        <div className="bg-slate-50 rounded-sm shadow-[0_8px_30px_rgb(0,0,0,0.03)] overflow-hidden border border-slate-300">
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-200">
                     <thead className="bg-slate-50">
@@ -36,13 +36,13 @@ export const ProductoTable = ({ data, onDelete, onEdit }: Props) => {
                             <th className="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-slate-200">
+                    <tbody className="bg-slate-50 divide-y divide-slate-200">
                         {data.map((prod) => {
                             // Lógica visual para stock crítico
                             const isStockCritico = prod.stock_actual <= prod.stock_critico;
                             
                             return (
-                            <tr key={prod.id} className="hover:bg-slate-50 transition-colors">
+                            <tr key={prod.id} className="hover:bg-white transition-colors">
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-600">
                                     {prod.codigo_serie}
                                 </td>
