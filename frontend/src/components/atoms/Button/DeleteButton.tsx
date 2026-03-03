@@ -12,7 +12,7 @@ const DeleteButton = React.forwardRef<HTMLButtonElement, DeleteButtonProps>(
     return (
       <Button
         ref={ref}
-        variant="outline" // Usamos la variante que creamos arriba
+        variant="destructive" // Usamos la variante que creamos arriba
         size="sm"
         // Combinamos tus clases. 'gap-2' separa icono y texto.
         // 'pl-3 pr-4' es un truco visual: un poco menos de padding a la izquierda 

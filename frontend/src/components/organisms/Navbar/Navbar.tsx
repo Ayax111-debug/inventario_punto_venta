@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+// Asegúrate de que las rutas a tus imports sean correctas
 import { NAV_LINKS } from '../../../data/navigation';
 import { LogoutButton } from '../../molecules/LogoutBtn';
-
 
 export const Navbar = () => {
     const [initial, setInitial] = useState("U");
@@ -17,47 +17,67 @@ export const Navbar = () => {
         }
     }, []);
 
+    // Calculamos el índice activo para que la caja "hundida" sepa a dónde deslizarse
+    const activeIndex = NAV_LINKS.findIndex(link => location.pathname === link.path);
+
     return (
-        <aside className="fixed top-4 left-4 bottom-4 w-64 bg-slate-50 text-slate-700 flex flex-col border border-slate-300 rounded-md shadow-[0_8px_30px_rgb(0,0,0,0.03)] z-50">
+        <aside className="fixed top-4 left-4 bottom-4 w-64 bg-[#ffffff] text-slate-700 flex flex-col rounded-xl shadow-[0_4px_24px_0_rgba(0,0,0,0.06)] border border-slate-100 z-50">
             
             {/* Cabecera del Sidebar */}
-            <div className="h-16 flex items-center justify-center border-b border-slate-300">
-                <span className="text-xl font-bold text-slate-800 tracking-tight">Mi Sistema POS</span>
+            <div className="h-20 flex items-center justify-center border-b border-slate-100">
+                <span className="text-xl font-extrabold text-slate-800 tracking-tight">
+                    jade <span className="text-emerald-500">POS</span>
+                </span>
             </div>
 
-            {/* Perfil de Usuario */}
-            <div className="p-4 flex items-center gap-3 border-b border-slate-300">
-                <div className="w-10 h-10 rounded-full bg-white border border-slate-300 flex items-center justify-center text-emerald-600 font-bold shadow-sm">
-                    {initial}
-                </div>
-                <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-slate-800">Bienvenido</span>
-                    <span className="text-xs text-slate-500 font-medium">{name}</span>
+            {/* Perfil de Usuario - Estilo Barra Alargada (Pill) */}
+            <div className="px-4 py-5 border-b border-slate-100">
+                <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-1.5 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)] w-full">
+                    {/* Avatar circular flotando dentro de la barra hundida */}
+                    <div className="w-10 h-10 shrink-0 rounded-full bg-white shadow-sm flex items-center justify-center text-emerald-600 font-bold text-sm">
+                        {initial}
+                    </div>
+                    {/* Textos con truncate por si el nombre es muy largo */}
+                    <div className="flex flex-col pr-3 overflow-hidden">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Bienvenido</span>
+                        <span className="text-sm text-slate-800 font-bold leading-none truncate">{name || 'Usuario'}</span>
+                    </div>
                 </div>
             </div>
 
             {/* Lista de Módulos */}
             <nav className="flex-1 overflow-y-auto py-6">
-                <ul className="flex flex-col gap-2 px-3">
+                {/* ul relativo para contener la animación absoluta */}
+                <ul className="relative flex flex-col gap-2 px-3">
+                    
+                    {/* LA MAGIA: Caja de fondo hundido que se desliza */}
+                    {activeIndex >= 0 && (
+                        <div 
+                            className="absolute left-3 right-3 h-12 bg-slate-100 rounded-xl shadow-[inset_0_3px_8px_rgba(0,0,0,0.07),inset_0_1px_3px_rgba(0,0,0,0.04)] border border-slate-200/60 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
+                            style={{ 
+                                // Cada 'li' mide 48px (h-12) + 8px de gap (gap-2) = 56px de salto exacto
+                                transform: `translateY(${activeIndex * 56}px)` 
+                            }}
+                        />
+                    )}
+
                     {NAV_LINKS.map((link) => {
                         const isActive = location.pathname === link.path;
-                        // Extraemos el componente del icono si existe
                         const Icon = link.icon;
 
                         return (
-                            <li key={link.path}>
+                            // z-10 para que el texto y clic queden por encima de la caja animada
+                            <li key={link.path} className="relative z-10 h-12">
                                 <Link
                                     to={link.path}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                                    className={`flex items-center gap-3 px-4 h-full rounded-xl transition-colors duration-200 ${
                                         isActive 
-                                        ? 'bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20' 
-                                        : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900' 
+                                        ? 'text-emerald-700 font-bold' // El fondo ya no está aquí, lo da la caja que se desliza
+                                        : 'text-slate-500 font-medium hover:text-emerald-600 hover:bg-slate-50 hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.03)]' // Hover hundido suave
                                     }`}
                                 >
-                                    {/* Si el icono existe en la constante, lo renderizamos aquí */}
                                     {Icon && <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />}
-                                    
-                                    <span className="font-medium">{link.label}</span>
+                                    <span>{link.label}</span>
                                 </Link>
                             </li>
                         );
@@ -66,8 +86,8 @@ export const Navbar = () => {
             </nav>
 
             {/* Pie del Sidebar */}
-            <div className="p-4 border-t border-slate-200 flex justify-center pb-6">
-                <LogoutButton />
+            <div className="p-4 border-t border-slate-100 flex justify-center pb-6">
+                <LogoutButton className="w-full flex items-center justify-center gap-2 h-10 rounded-lg text-sm font-bold transition-all bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 hover:text-red-700 hover:shadow-[inset_0_2px_4px_rgba(220,38,38,0.1)] active:scale-95" />
             </div>
         </aside>
     );

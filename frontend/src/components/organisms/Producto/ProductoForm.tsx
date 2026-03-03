@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { type Producto } from '../../../domain/models/Producto';
+import { type Producto, type Categoria } from '../../../domain/models/Producto';
 import axios from 'axios';
 
 interface Props {
@@ -10,6 +10,8 @@ interface Props {
 
 export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
 
+    const [categorias, setCategorias] = useState<Categoria[]>([]);
+
     const initialState: Producto = {
         nombre: '',
         descripcion: '',
@@ -18,11 +20,31 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
         stock_actual: 0,
         stock_critico: 5,
         activo: true,
+        categoria_id: '',
     };
 
     const [form, setForm] = useState<Producto>(initialState);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<Record<string, string[]>>({});
+
+    useEffect(() => {
+        const fetchCategorias = async () => {
+            try {
+                // Se agrega http:// para evitar que el navegador lo tome como ruta relativa
+                const response = await axios.get('http://127.0.0.1:8000/api/categorias/'); 
+                
+                // Validación estricta para evitar que .map() rompa la pantalla
+                const data = response.data;
+                const listaCategorias = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
+                
+                setCategorias(listaCategorias);
+            } catch (error) {
+                console.error("Error cargando categorías", error);
+                setCategorias([]); // En caso de error, inicializa como arreglo vacío
+            }
+        };
+        fetchCategorias();
+    }, []);
 
     useEffect(() => {
         if (initialData) {
@@ -49,6 +71,12 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
         setErrors({}); 
         setIsSubmitting(true);
 
+        if (!form.categoria_id) {
+            setErrors(prev => ({ ...prev, categoria_id: ['Debes seleccionar una categoría'] }));
+            setIsSubmitting(false);
+            return;
+        }
+
         const productoParaEnviar: Producto = {
             ...form,
             id: initialData?.id, 
@@ -71,7 +99,7 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
     };
 
     const inputClass = (fieldName: string) => `
-        w-full border p-2 rounded focus:ring-2 outline-none 
+        w-full border p-2 rounded focus:ring-2 outline-none transition-colors
         ${errors[fieldName] 
             ? 'border-red-500 ring-red-200 focus:ring-red-500' 
             : 'border-gray-300 focus:ring-indigo-500'
@@ -80,7 +108,7 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
 
     return (
         <div className="bg-slate-50 p-6 rounded-sm mb-6">
-            <h2 className="text-xl font-semibold mb-4 text-slate-800">
+            <h2 className="text-xl font-semibold mb-4 text-slate-800 border-b pb-2">
                 {initialData ? 'Editar Producto' : 'Registrar Nuevo Producto'}
             </h2>
 
@@ -91,8 +119,33 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
                     </div>
                 )}
 
+                {/* FILA 1: Categoría (Ocupa todo el ancho por importancia) */}
+                <div className="grid grid-cols-1 gap-4">
+                    <div> 
+                        <label className="block text-sm font-semibold text-slate-700 mb-1">Categoría *</label>
+                        <select
+                            className={inputClass('categoria_id')}
+                            value={form.categoria_id}
+                            onChange={e => handleChange('categoria_id', Number(e.target.value))}
+                            required
+                        >
+                            <option value="">Selecciona una categoría...</option>
+                            {categorias.map(cat => (
+                                <option key={cat.id} value={cat.id}>
+                                    {cat.nombre}
+                                </option>
+                            ))}
+                        </select>
+                        {errors.categoria_id && (
+                            <span className="text-red-500 text-xs font-bold mt-1 block">
+                                {errors.categoria_id[0]}
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* FILA 2: Nombre y SKU */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* NOMBRE */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
                         <input
@@ -105,7 +158,6 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
                         {errors.nombre && <span className="text-red-500 text-xs font-bold mt-1 block">{errors.nombre[0]}</span>}
                     </div>
 
-                    {/* CÓDIGO SERIE */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">SKU / Código Barra *</label>
                         <input
@@ -117,8 +169,10 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
                         />
                          {errors.codigo_serie && <span className="text-red-500 text-xs font-bold mt-1 block">{errors.codigo_serie[0]}</span>}
                     </div>
+                </div>
 
-                    {/* PRECIO VENTA */}
+                {/* FILA 3: Precio y Stock */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Precio Venta *</label>
                         <input
@@ -132,7 +186,6 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
                         {errors.precio_venta && <span className="text-red-500 text-xs font-bold mt-1 block">{errors.precio_venta[0]}</span>}
                     </div>
 
-                    {/* STOCK ACTUAL */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Stock Inicial *</label>
                         <input
@@ -147,8 +200,8 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
                     </div>
                 </div>
 
+                {/* FILA 4: Alerta Stock y Descripción */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* STOCK CRÍTICO */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Alerta Stock Bajo (Crítico)</label>
                         <input
@@ -161,7 +214,6 @@ export const ProductoForm = ({ onSubmit, initialData, onCancel }: Props) => {
                         <span className="text-xs text-slate-500">Avisar cuando queden esta cantidad o menos.</span>
                     </div>
 
-                    {/* DESCRIPCIÓN */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Descripción (Opcional)</label>
                         <textarea

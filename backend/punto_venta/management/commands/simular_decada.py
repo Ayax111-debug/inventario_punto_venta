@@ -4,16 +4,17 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import transaction
 from django.contrib.auth import get_user_model
-from modulo_principal.models import Producto
+# Asegúrate de importar el Kardex aquí
+from modulo_principal.models import Producto, MovimientoKardex 
 from punto_venta.models import Venta, DetalleVenta, SesionCaja
 
 User = get_user_model()
 
 class Command(BaseCommand):
-    help = 'Simula 10 años de historial forzando horas exactas (9:00 a 22:00) en SQLite.'
+    help = 'Simula 10 años de historial forzando horas exactas y rellenando el Kardex.'
 
     def handle(self, *args, **kwargs):
-        self.stdout.write(self.style.WARNING('🔥 INICIANDO STRESS TEST: 10 AÑOS - FECHAS BULLETPROOF'))
+        self.stdout.write(self.style.WARNING('🔥 INICIANDO STRESS TEST: 10 AÑOS - FECHAS BULLETPROOF & KARDEX'))
 
         usuario = User.objects.first()
         productos = list(Producto.objects.all())
@@ -51,7 +52,7 @@ class Command(BaseCommand):
                     ventas_del_dia = random.randint(15, 35)
                     
                     for _ in range(ventas_del_dia):
-                        # 🕒 MAGIA DE HORARIOS: Entre las 9:00 y las 21:59 (antes de las 22:00)
+                        # 🕒 MAGIA DE HORARIOS
                         hora_v = random.randint(9, 21) 
                         min_v = random.randint(0, 59)
                         seg_v = random.randint(0, 59)
@@ -65,22 +66,41 @@ class Command(BaseCommand):
                             total=0 
                         )
 
-                        # Agregamos los productos
+                        # Agregamos los productos y sus movimientos de Kardex
                         total_v = 0
                         detalles = []
+                        kardex_list = [] # 🚀 Lista para inserción masiva del Kardex
+                        
                         items = random.sample(productos, random.randint(1, 3))
                         for p in items:
                             cant = random.randint(1, 2)
                             sub = cant * p.precio_venta
                             total_v += sub
+                            
                             detalles.append(DetalleVenta(
                                 venta=venta, producto=p, cantidad=cant,
                                 precio_unitario=p.precio_venta, subtotal=sub
                             ))
-                        
-                        DetalleVenta.objects.bulk_create(detalles)
 
-                        # 🚀 TRUCO MAESTRO: Obligamos a la BD a reescribir la fecha y el total real
+                            # Generamos un stock previo ficticio coherente para que la tabla en React se vea real
+                            stock_previo_ficticio = random.randint(cant, 100) 
+
+                            kardex_list.append(MovimientoKardex(
+                                producto=p,
+                                usuario=usuario,
+                                tipo_movimiento='SALIDA_VENTA',
+                                cantidad=cant,
+                                stock_anterior=stock_previo_ficticio,
+                                stock_nuevo=stock_previo_ficticio - cant,
+                                motivo=f"Venta Simulada #{str(venta.id)[:8]}",
+                                fecha=momento_venta # bulk_create respeta este campo si lo pasamos directo
+                            ))
+                        
+                        # Inyecciones masivas (Evita hacer cientos de miles de queries individuales)
+                        DetalleVenta.objects.bulk_create(detalles)
+                        MovimientoKardex.objects.bulk_create(kardex_list)
+
+                        # Obligamos a la BD a reescribir la fecha y el total real de la venta
                         Venta.objects.filter(id=venta.id).update(fecha=momento_venta, total=total_v)
 
-        self.stdout.write(self.style.SUCCESS('✅ ¡STRESS TEST PERFECTO! Las horas están distribuidas correctamente.'))
+        self.stdout.write(self.style.SUCCESS('✅ ¡STRESS TEST PERFECTO! Las horas y el Kardex están distribuidos correctamente.'))

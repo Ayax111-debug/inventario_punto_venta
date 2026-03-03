@@ -42,7 +42,7 @@ export const CajaControlPanel = () => {
                 // --- VISTA: CAJA CERRADA ---
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                        <div className="p-4 bg-slate-100 text-slate-500 rounded-full">
+                        <div className="p-4 bg-red-500 text-white rounded-full">
                             <Lock size={28} />
                         </div>
                         <div>

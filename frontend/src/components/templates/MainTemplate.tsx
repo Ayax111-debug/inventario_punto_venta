@@ -8,7 +8,7 @@ interface MainTemplateProps {
 export const MainTemplate = ({ children }: MainTemplateProps) => {
     return (
         // Fondo verde uniforme y sutil como pediste
-        <div className='flex min-h-screen bg-stone-50 relative'>
+        <div className='flex min-h-screen bg-slate-100 relative'>
             
             {/* El Sidebar flotante */}
             <Navbar />

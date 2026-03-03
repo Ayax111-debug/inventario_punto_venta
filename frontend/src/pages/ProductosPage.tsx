@@ -12,6 +12,8 @@ import { productoService } from '../services/producto.service';
 import { AddButton } from '../components/atoms/Button/AddButton';
 import { type Producto } from '../domain/models/Producto';
 import { categoriaService } from '../services/categoria.service';
+// Importamos el nuevo Organismo del Kardex
+import { KardexModal } from '../components/organisms/Kardex/Kardex';
 
 const ProductosPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -28,9 +30,16 @@ const ProductosPage = () => {
         crearProducto, eliminarProducto, actualizarProducto, clearError,
     } = useProductos(currentFilters);
 
+    // Estados del Modal de Formulario (Crear/Editar)
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProd, setEditingProd] = useState<Producto | null>(null);
     const [fetchingSingle, setFetchingSingle] = useState(false);
+
+    // ==========================================
+    // NUEVOS ESTADOS PARA EL KARDEX
+    // ==========================================
+    const [isKardexOpen, setIsKardexOpen] = useState(false);
+    const [selectedProductKardex, setSelectedProductKardex] = useState<Producto | null>(null);
 
     // 4. EFECTO PARA CARGAR CATEGORÍAS
     useEffect(() => {
@@ -73,7 +82,7 @@ const ProductosPage = () => {
     };
 
     // ---------------------------------------------
-    // 6. LÓGICA DE URL Y MODAL 
+    // 6. LÓGICA DE URL Y MODALES 
     // ---------------------------------------------
     useEffect(() => {
         const editId = searchParams.get('editar');
@@ -85,7 +94,6 @@ const ProductosPage = () => {
 
         const idToFind = Number(editId);
 
-        // Prevenimos la recarga si el modal ya está abierto con el producto correcto
         if (isModalOpen && editingProd?.id === idToFind) return;
 
         const productoEnLista = productos.find(p => p.id === idToFind);
@@ -103,9 +111,9 @@ const ProductosPage = () => {
                 .catch(() => setSearchParams({}))
                 .finally(() => setFetchingSingle(false));
         }
-        // 👇 Solo dependemos de la URL y si la lista creció/achicó
     }, [searchParams, productos.length]);
 
+    // Handlers del Formulario
     const handleCreate = () => {
         setEditingProd(null);
         setIsModalOpen(true);
@@ -141,16 +149,35 @@ const ProductosPage = () => {
         }
     };
 
-    // AQUÍ ESTABA EL ERROR: Tenías una llave "};" de más arriba que cerraba el componente antes del return.
+    // Handler del Kardex
+    const handleViewKardex = (prod: Producto) => {
+        setSelectedProductKardex(prod);
+        setIsKardexOpen(true);
+    };
 
     return (
         <MainTemplate>
             <div className="max-w-6xl mx-auto p-6">
+                <div className="flex bg-white p-6 rounded-xl shadow-[0_4px_24px_0_rgba(0,0,0,0.06)] border border-slate-100 justify-between items-center mb-6">
+                    <div className="flex items-center gap-4">
+                        {/* Barra de acento lateral */}
+                        <div className="w-1 h-12 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]"></div>
 
-                {/* Header */}
-                <div className="flex bg-slate-50 p-5 rounded-sm shadow-[0_8px_30px_rgb(0,0,0,0.03)] justify-between items-center mb-6 border border-slate-300">
-                    <h1 className="text-3xl font-bold text-gray-700">Maestro de productos</h1>
-                    <AddButton label='Agregar Producto' onClick={handleCreate} />
+                        <div className="flex flex-col">
+                            <h1 className="text-2xl font-bold text-slate-800 leading-none">
+                                Maestro de productos
+                            </h1>
+                            <span className="text-sm text-slate-400 mt-1 font-medium">
+                                Visualiza y edita tu catálogo de productos
+                            </span>
+                        </div>
+                    </div>
+
+                    <AddButton
+                        label='Agregar Producto'
+                        onClick={handleCreate}
+                        className="shadow-[0_4px_12px_rgba(16,185,129,0.25),inset_0_1px_0_rgba(255,255,255,0.4)] transition-transform active:scale-95"
+                    />
                 </div>
 
                 {/* Smart Filter */}
@@ -167,14 +194,13 @@ const ProductosPage = () => {
                 )}
 
                 {error && (
-                    <div className="bg-red-50 text-red-700 p-4 mb-6 rounded border border-red-200 flex justify-between items-start shadow-sm transition-all">
+                    <div className="bg-red-50 text-red-700 p-4 mb-6 rounded-lg border border-red-200 flex justify-between items-start shadow-sm transition-all">
                         <div className="flex items-center gap-2">
-                            
                             <p className="font-medium text-sm">{error}</p>
                         </div>
                         <button
                             onClick={clearError}
-                            className="text-red-500 hover:text-red-700 font-bold px-2"
+                            className="text-red-500 hover:text-red-800 font-bold px-2 py-1 bg-red-100/50 hover:bg-red-200 rounded transition-colors"
                             title="Cerrar mensaje"
                         >
                             ✕
@@ -184,7 +210,7 @@ const ProductosPage = () => {
 
                 {/* Tabla y Paginación */}
                 {loading && productos.length === 0 ? (
-                    <div className="p-10 text-center text-gray-500 animate-pulse font-medium">
+                    <div className="p-10 text-center text-slate-500 animate-pulse font-medium">
                         Cargando catálogo...
                     </div>
                 ) : (
@@ -193,6 +219,7 @@ const ProductosPage = () => {
                             data={productos}
                             onDelete={eliminarProducto}
                             onEdit={handleEdit}
+                            onViewKardex={handleViewKardex} // Pasamos el handler aquí
                         />
 
                         <div className="mt-4">
@@ -208,7 +235,7 @@ const ProductosPage = () => {
                     </>
                 )}
 
-                {/* Modal de Formulario */}
+                {/* Modal de Formulario (Crear/Editar) */}
                 <Modal
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}
@@ -216,8 +243,8 @@ const ProductosPage = () => {
                 >
                     {fetchingSingle ? (
                         <div className="flex flex-col items-center justify-center p-8">
-                            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                            <p className="mt-2 text-sm text-gray-500">Recuperando información...</p>
+                            <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                            <p className="mt-4 text-sm font-bold text-slate-500">Recuperando información...</p>
                         </div>
                     ) : (
                         <ProductoForm
@@ -227,6 +254,15 @@ const ProductosPage = () => {
                         />
                     )}
                 </Modal>
+
+                {/* Modal del Kardex */}
+                <KardexModal 
+                    isOpen={isKardexOpen}
+                    onClose={() => setIsKardexOpen(false)}
+                    productoId={selectedProductKardex?.id || null}
+                    productoNombre={selectedProductKardex?.nombre || ''}
+                />
+
             </div>
         </MainTemplate>
     );

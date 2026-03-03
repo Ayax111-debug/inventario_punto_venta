@@ -68,7 +68,7 @@ const HistorialVentasPage = () => {
                                                         <Unlock size={12} /> Abierta
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-200 text-slate-800">
                                                         <Lock size={12} /> Cerrada
                                                     </span>
                                                 )}

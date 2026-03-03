@@ -53,8 +53,8 @@ export const CategoriaTable = ({ data, onDelete, onEdit }: Props) => {
                                 </td>
 
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <EditButton className='bg-indigo-100 text-indigo-700 hover:bg-indigo-200 m-1 border border-transparent' onClick={() => (onEdit(prod))}/>
-                                    <DeleteButton className='bg-red-50 text-red-600 hover:bg-red-100 border border-transparent' onClick={() => prod.id && onDelete(prod.id)} />
+                                    <EditButton className='bg-yellow-100 text-yellow-700 hover:bg-yellow-200 m-1 border border-transparent' onClick={() => (onEdit(cat))}/>
+                                    <DeleteButton className='bg-red-50 text-red-600 hover:bg-red-100 border border-transparent ' onClick={() => cat.id && onDelete(cat.id)} />
                                 </td>
                             </tr>
                         ))}
