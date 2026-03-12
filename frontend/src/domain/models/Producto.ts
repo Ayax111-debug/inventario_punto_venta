@@ -1,16 +1,20 @@
-export interface Producto{
-    laboratorio: number;
-    laboratorio_nombre: string;
+export interface Categoria {
+    id: number;
+    nombre: string;
+}
+
+export interface Producto {
     id?: number;
     nombre: string;
     descripcion: string;
-    cantidad_mg: number;
-    cantidad_capsulas: number;
-    es_bioequivalente: boolean;
     codigo_serie: string;
     precio_venta: number;
+    stock_actual: number;
+    stock_critico: number;
     activo: boolean;
+    categoria_id: number | ''; // <-- Nueva pieza clave
 }
+
 export interface PaginatedResponse<T> {
     count: number;
     next: string | null;

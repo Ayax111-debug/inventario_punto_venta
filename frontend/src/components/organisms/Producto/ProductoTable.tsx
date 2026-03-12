@@ -1,83 +1,123 @@
+// src/components/organisms/ProductoTable.tsx
 import { type Producto } from '../../../domain/models/Producto';
-import { EditButton } from '../../atoms/Button/EditButton';
-import { DeleteButton } from '../../atoms/Button/DeleteButton';
+import { ActionDropdown } from '../../molecules/ActionDropDown/ActionDropDown';
+import { FileText, Edit, Trash2, ArrowUpDown } from 'lucide-react'; // Añadimos ArrowUpDown para el ajuste
 
 interface Props {
     data: Producto[];
     onDelete: (id: number) => void;
     onEdit: (prod: Producto) => void;
+    onViewKardex: (prod: Producto) => void;
+    onAjustarStock: (prod: Producto) => void; // <-- Nueva prop para el modal de stock
 }
 
-export const ProductoTable = ({ data, onDelete, onEdit }: Props) => {
+export const ProductoTable = ({ data, onDelete, onEdit, onViewKardex, onAjustarStock }: Props) => {
 
-    // Helper para formatear dinero (CLP u otra moneda local)
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(price);
     };
 
     if (data.length === 0) {
         return (
-            <div className="p-8 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <p className="text-gray-500">No hay productos registrados en el inventario.</p>
+            <div className="p-8 text-center bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                <p className="text-slate-500">No hay productos registrados en el inventario.</p>
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-            <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+        <div className="bg-[#ffffff] rounded-sm shadow-[0_4px_24px_0_rgba(0,0,0,0.06)]">
+            <div className="overflow-x-auto overflow-y-visible"> 
+                <table className="min-w-full divide-y divide-slate-300">
+                    <thead className="bg-[#ffffff]">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU / Código</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">SKU / Código</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Producto</th>
+                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Stock</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Precio</th>
+                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</th>
+                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {data.map((prod) => (
-                            <tr key={prod.id} className="hover:bg-gray-50 transition-colors">
-                                {/* Columna SKU */}
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
+                    <tbody className="bg-[#ffffff] divide-y divide-slate-300">
+                        {data.map((prod) => {
+                            const isStockCritico = prod.stock_actual <= prod.stock_critico;
+                            
+                            return (
+                            <tr key={prod.id} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-600">
                                     {prod.codigo_serie}
                                 </td>
 
-                                {/* Columna Nombre y Descripción Corta */}
-                                <td className="px-6 py-4">
-                                    <div className="text-sm font-medium text-gray-900">{prod.nombre}</div>
-                                    <div className="text-xs text-gray-500">
-                                        {prod.cantidad_mg}mg - {prod.cantidad_capsulas} un. 
-                                        {/* Nota: Aquí mostramos el ID del lab por ahora. Idealmente traer el nombre */}
-                                        <span className="ml-1 text-blue-500">(Lab ID: {prod.laboratorio})</span>
-                                    </div>
+                                <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800'>
+                                    {prod.nombre}
                                 </td>
-
-                                {/* Columna Precio */}
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                                
+                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold">
+                                    <span className={isStockCritico ? 'text-red-600' : 'text-slate-700'}>
+                                        {prod.stock_actual}
+                                    </span>
+                                </td>
+                    
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-semibold">
                                     {formatPrice(prod.precio_venta)}
                                 </td>
 
-                                {/* Columna Estado (Badge) */}
                                 <td className="px-6 py-4 whitespace-nowrap text-center">
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                         ${prod.activo 
-                                            ? 'bg-green-100 text-green-800' 
-                                            : 'bg-red-100 text-red-800'}`
+                                            ? 'bg-green-100 text-green-800 border border-green-200' 
+                                            : 'bg-red-100 text-red-800 border border-red-200'}`
                                     }>
                                         {prod.activo ? 'Activo' : 'Inactivo'}
                                     </span>
                                 </td>
 
-                                {/* Columna Acciones */}
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <EditButton className='bg-blue-400 text-white hover:bg-blue-200 m-1' onClick={() => (onEdit(prod))}/>
+                                    <div className="flex items-center justify-end gap-2">
+                                        
+                                        {/* ACCIÓN PRIMARIA 1: Ajustar Stock */}
+                                        <button 
+                                            onClick={() => onAjustarStock(prod)}
+                                            title="Cargar o descontar stock"
+                                            className="bg-amber-50 text-amber-600 hover:bg-amber-100 px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 transition-colors font-semibold text-xs"
+                                        >
+                                            <ArrowUpDown size={14} />
+                                            <span>Ajustar</span>
+                                        </button>
 
-                                    <DeleteButton className='bg-red-400 text-white hover:bg-red-200'  onClick={() => prod.id && onDelete(prod.id)} />
+                                        {/* ACCIÓN PRIMARIA 2: Ver Kardex */}
+                                        <button 
+                                            onClick={() => onViewKardex(prod)}
+                                            title="Ver historial de Kardex"
+                                            className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 transition-colors font-semibold text-xs"
+                                        >
+                                            <FileText size={14} />
+                                            <span>Kardex</span>
+                                        </button>
+
+                                        {/* ACCIONES SECUNDARIAS: Dropdown Menu (Solo Editar y Eliminar) */}
+                                        <div className="ml-1 border-l border-slate-200 pl-1">
+                                            <ActionDropdown 
+                                                actions={[
+                                                    {
+                                                        label: 'Editar producto',
+                                                        icon: <Edit size={14} />,
+                                                        onClick: () => onEdit(prod)
+                                                    },
+                                                    {
+                                                        label: 'Eliminar',
+                                                        icon: <Trash2 size={14} />,
+                                                        onClick: () => prod.id && onDelete(prod.id),
+                                                        danger: true
+                                                    }
+                                                ]}
+                                            />
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
-                        ))}
+                        )})}
                     </tbody>
                 </table>
             </div>

@@ -1,7 +1,15 @@
+import { 
+  LayoutDashboard, 
+  History, 
+  Package, 
+  Tags, 
+  ShoppingCart 
+} from 'lucide-react';
+
 export const NAV_LINKS = [
-    {label: 'Inicio',path: '/'},
-    {label: 'Laboratorios',path: '/laboratorios'},
-    {label: 'Productos',path: '/productos'},
-    {label: 'lotes',path: '/lotes'},
-    {label: 'Ventas',path: 'Ventas'},
-]
+    { label: 'Ventas', path: '/', icon: LayoutDashboard },
+    { label: 'Historial de Ventas', path: '/ventas/historial', icon: History },
+    { label: 'Productos', path: '/productos', icon: Package },
+    { label: 'Categorias', path: '/categorias', icon: Tags },
+    { label: 'Punto de venta', path: '/pos', icon: ShoppingCart },
+];

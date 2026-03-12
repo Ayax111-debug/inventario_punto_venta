@@ -1,10 +1,10 @@
 from .usuarioSerializer import UsuarioListaSerializer,UsuarioRegistroSerializer
-from .inventarioSerializer import ProductoSerializer,LaboratorioSerializer,LoteSerializer
-
+from .inventarioSerializer import ProductoSerializer,CategoriaSerializer
+from .kardexSerializer import MovimientoKardexSerializer
 __all__ = [
     'UsuarioListaSerializer',
     'UsuarioRegistroSerializer',
     'ProductoSerializer',
-    'LaboratorioSerializer',
-    'LoteSerializer',
+    'CategoriaSerializer',
+    'MovimientoKardexSerializer'
 ]

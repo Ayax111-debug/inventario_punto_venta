@@ -1,146 +1,176 @@
 from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.core.exceptions import ValidationError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from django.db.models import Q, Case, When, Value, BooleanField, Sum, F
+from django.db.models import Q
+from django.db.models.deletion import ProtectedError
+from rest_framework import status
+from django.db import transaction
 
-from ..models import Producto, Laboratorio, Lote
+# 👇 IMPORTAMOS TU PAGINADOR CENTRALIZADO
+from modulo_principal.utils.pagination import EstándarPagination
+
+from ..models import Producto, Categoria
 from ..serializers import (
     ProductoSerializer,
-    LaboratorioSerializer,
-    LoteSerializer
+    CategoriaSerializer
 )
 
 # ---------------------------------------------------------
-# 1. LABORATORIOS
+# 1. CATEGORÍAS
 # ---------------------------------------------------------
-class LaboratorioViewSet(viewsets.ModelViewSet):
-    permission_classes = [AllowAny] # quitar en produccion
-    authentication_classes = [] # quitar en produccion
-
-    queryset = Laboratorio.objects.all()
-    serializer_class = LaboratorioSerializer
+class CategoriaViewSet(viewsets.ModelViewSet):
+    permission_classes = [AllowAny]
     
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['nombre', 'telefono'] # Agregué teléfono por si acaso
-    ordering_fields = ['nombre']
-    ordering = ['nombre']
+    queryset = Categoria.objects.all()
+    serializer_class = CategoriaSerializer
+    
+    # 👇 APLICAMOS EL PAGINADOR EXPLÍCITAMENTE
+    pagination_class = EstándarPagination
 
-    @action(detail=False, methods=['get'], pagination_class=None)
-    def simple_list(self, request):
-        # Optimización: values() trae un dict, es mucho más rápido que serializar objetos completos
-        data = self.queryset.values('id', 'nombre')
-        return Response(list(data))
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['nombre', 'descripcion'] 
+    filterset_fields = {'activo': ['exact'],
+                        'nombre':['exact']}
+    ordering_fields = ['nombre', 'descripcion']
 
 
 # ---------------------------------------------------------
-# 2. PRODUCTOS (El cerebro de la operación)
+# 2. PRODUCTOS
 # ---------------------------------------------------------
 class ProductoViewSet(viewsets.ModelViewSet):
-    permission_classes = [AllowAny] # quitar en produccion
-    authentication_classes = [] # quitar en produccion
-
+    # AL QUITAR LOS OVERRIDES, DJANGO AHORA USARÁ IsAuthenticated Y CustomJWTAuthentication
+    # DE TU settings.py POR DEFECTO PARA TODOS LOS ENDPOINTS DE PRODUCTOS.
+    
     serializer_class = ProductoSerializer
     
-    # Configuración de Filtros Potenciada
+    # 👇 APLICAMOS EL PAGINADOR EXPLÍCITAMENTE
+    pagination_class = EstándarPagination
+    
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['nombre', 'codigo_serie', 'descripcion', 'categoria__nombre']
     
-    # 1. Búsqueda Texto (Smart Filter input texto)
-    search_fields = ['nombre', 'codigo_serie', 'laboratorio__nombre', 'descripcion']
-    
-    # 2. Filtros Estructurados (Smart Filter selects/rangos)
-    # Usamos diccionario para permitir rangos (gte=desde, lte=hasta)
     filterset_fields = {
-        'laboratorio': ['exact'],
         'activo': ['exact'],
-        'es_bioequivalente': ['exact'],
-        'cantidad_mg': ['gte', 'lte', 'exact'], # Permite filtrar "más de 500mg"
+        'categoria': ['exact'],
     }
     
-    # 3. Ordenamiento manual (Click en cabeceras de tabla)
-    ordering_fields = ['nombre', 'precio_venta', 'cantidad_mg', 'laboratorio__nombre']
+    ordering_fields = ['nombre', 'precio_venta', 'stock_actual']
 
     def get_queryset(self):
-        """
-        Smart Sorting:
-        1. Prioridad: Productos Activos
-        2. Prioridad: Con Stock (Calculado al vuelo)
-        3. Alfabético
-        """
-        qs = Producto.objects.select_related('laboratorio')
-        
-        # Anotamos el stock total sumando lotes activos
-        # Coalesce(Sum(...), 0) se asegura de que si no hay lotes devuelva 0 en vez de None
-        qs = qs.annotate(
-            total_stock_disponible=Sum(
-                'lotes__cantidad', 
-                filter=Q(lotes__activo=True, lotes__defectuoso=False)
-            )
+        return Producto.objects.select_related('categoria').all().order_by(
+            '-activo', '-stock_actual', 'nombre'
         )
-        
-        # Lógica de Ordenamiento por defecto:
-        # Primero los ACTIVOS, luego los que tienen MÁS STOCK, luego por NOMBRE
-        return qs.order_by('-activo', F('total_stock_disponible').desc(nulls_last=True), 'nombre')
 
     @action(detail=False, methods=['get'], pagination_class=None)
     def simple_list(self, request):
-        # Optimizado con values()
-        data = Producto.objects.values('id', 'nombre')
+        data = Producto.objects.values('id', 'nombre', 'stock_actual', 'precio_venta')
         return Response(list(data))
 
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError as e:
+            return Response(
+                {
+                    "error": "No se puede eliminar este producto porque tiene ventas asociadas.",
+                    "detalle": "Para mantener la integridad de tu historial contable, el sistema protege los productos que ya han sido vendidos."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-# ---------------------------------------------------------
-# 3. LOTES (Gestión de fechas)
-# ---------------------------------------------------------
-class LoteViewSet(viewsets.ModelViewSet):
-    permission_classes = [AllowAny] # quitar en produccion
-    authentication_classes = [] # quitar en produccion
-    
-    serializer_class = LoteSerializer
-    
-    # Bloqueamos DELETE directo en la API por seguridad (ya lo tienes en el modelo, pero doble capa)
-    # http_method_names = ['get', 'post', 'put', 'patch', 'head', 'options'] 
-    # (Comentado porque en desarrollo quizás quieras borrar, descomentar en prod)
+    @action(detail=True, methods=['post'], url_path='ajustar-stock')
+    @transaction.atomic
+    def ajustar_stock(self, request, pk=None):
+        producto = self.get_object()
+        
+        # AQUÍ request.user AHORA SÍ TRAERÁ TU USUARIO REAL GRACIAS A LAS COOKIES
+        usuario_actual = request.user 
 
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    
-    # Búsqueda por código (faltaba esto para tu buscador)
-    search_fields = ['codigo_lote', 'producto__nombre']
+        tipo_ajuste = request.data.get('tipo_ajuste')
+        cantidad = request.data.get('cantidad')
+        motivo_detalle = request.data.get('motivo', 'Ajuste manual') 
 
-    # Filtros potentes para fechas
-    filterset_fields = {
-        'producto': ['exact'],
-        'defectuoso': ['exact'],
-        'activo': ['exact'],
-        'fecha_vencimiento': ['gte', 'lte'], # Vital para "Ver lotes que vencen este mes"
-        'fecha_creacion': ['gte', 'lte'],
-        'cantidad': ['gte', 'lte'], # Para ver "Lotes con poco stock"
-    }
+        if not tipo_ajuste or cantidad is None:
+            return Response({"error": "Faltan datos obligatorios."}, status=status.HTTP_400_BAD_REQUEST)
 
-    ordering_fields = ['fecha_vencimiento', 'fecha_creacion', 'cantidad']
+        try:
+            cantidad = int(cantidad)
+            if cantidad <= 0:
+                raise ValueError("La cantidad debe ser mayor a 0.")
+        except ValueError:
+            return Response({"error": "La cantidad debe ser un número entero positivo."}, status=status.HTTP_400_BAD_REQUEST)
 
-    def get_queryset(self):
+        if tipo_ajuste == 'CARGA':
+            cantidad_cambio = cantidad 
+            tipo_movimiento = 'ENTRADA_AJUSTE' 
+            motivo_final = f"Carga de Stock: {motivo_detalle}"
+        elif tipo_ajuste == 'DESCUENTO':
+            cantidad_cambio = -cantidad 
+            tipo_movimiento = 'SALIDA_AJUSTE'
+            motivo_final = f"Descuento por {motivo_detalle}"
+        else:
+            return Response({"error": "El tipo_ajuste debe ser CARGA o DESCUENTO."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            producto.modificar_stock(
+                cantidad_cambio=cantidad_cambio,
+                tipo_movimiento=tipo_movimiento,
+                motivo=motivo_final,
+                usuario=usuario_actual
+            )
+            
+            producto.refresh_from_db()
+            
+            return Response({
+                "mensaje": "Stock actualizado correctamente.",
+                "nuevo_stock": producto.stock_actual
+            }, status=status.HTTP_200_OK)
+
+        except ValidationError as e:
+            mensaje = e.message if hasattr(e, 'message') else e.messages[0]
+            return Response({"error": str(mensaje)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(detail=False, methods=['get'], url_path='buscar-pos', pagination_class=None)
+    def buscar_para_venta(self, request):
         """
-        Smart Sorting Lotes:
-        1. Lotes NO Defectuosos primero.
-        2. Lotes Activos primero.
-        3. Los que vencen ANTES primero (urgencia).
+        Endpoint optimizado para POS.
+        Prioriza la búsqueda exacta (Escáner) en 1 milisegundo.
         """
-        return Lote.objects.select_related('producto').order_by(
-            'defectuoso', # False (0) va antes que True (1) -> Sanos primero
-            '-activo',    # True va antes que False -> Activos primero
-            'fecha_vencimiento' # Ascendente -> Los que vencen pronto arriba
-        )
+        q = request.query_params.get('q', '').strip()
+        
+        if not q:
+            return Response([])
 
+        # 1. RUTA RÁPIDA (ESCÁNER): Coincidencia exacta
+        exact_match = list(Producto.objects.filter(
+            activo=True, 
+            stock_actual__gt=0, 
+            codigo_serie=q
+        ).values('id', 'nombre', 'codigo_serie', 'precio_venta', 'stock_actual')[:1])
+        
+        if exact_match:
+            return Response(exact_match)
+            
+        # 2. RUTA LENTA (TECLADO): Si no es exacto, busca en Nombre o Código Parcial
+        # 🔥 CLAVE: Agregado Q(codigo_serie__icontains=q) para que se comporte igual que tu antiguo buscador
+        name_match = list(Producto.objects.filter(
+            Q(nombre__icontains=q) | Q(codigo_serie__icontains=q),
+            activo=True, 
+            stock_actual__gt=0
+        ).values('id', 'nombre', 'codigo_serie', 'precio_venta', 'stock_actual')[:10])
+        
+        return Response(name_match)
 
 # ---------------------------------------------------------
-# 4. BUSQUEDA GLOBAL (Optimized)
+# 3. GLOBAL SEARCH
 # ---------------------------------------------------------
 class GlobalSearchView(APIView):
     """
-    Busca simultáneamente en Productos, Lotes y Laboratorios.
+    Busca simultáneamente en Productos y Categorías.
     """
     permission_classes = [AllowAny] 
     authentication_classes = []
@@ -151,45 +181,31 @@ class GlobalSearchView(APIView):
         if len(query) < 3:
             return Response([]) 
 
-        # Optimizamos consultas con select_related y values para traer solo lo necesario
-        # PRODUCTOS
+        categorias = Categoria.objects.filter(
+            nombre__icontains=query
+        ).only('id', 'nombre')[:3]
+
         productos = Producto.objects.filter(
             Q(nombre__icontains=query) | 
-            Q(codigo_serie__icontains=query) | 
-            Q(laboratorio__nombre__icontains=query)
-        ).select_related('laboratorio').only('id', 'nombre', 'cantidad_mg', 'laboratorio__nombre', 'codigo_serie')[:5]
-
-        # LOTES
-        lotes = Lote.objects.filter(
-            codigo_lote__icontains=query
-        ).select_related('producto').only('id', 'codigo_lote', 'fecha_vencimiento', 'producto__nombre')[:5]
-
-        # LABORATORIOS
-        laboratorios = Laboratorio.objects.filter(
-            nombre__icontains=query
-        ).only('id', 'nombre', 'telefono')[:5]
+            Q(codigo_serie__icontains=query) 
+        ).select_related('categoria').only(
+            'id', 'nombre', 'codigo_serie', 'precio_venta', 'categoria__nombre', 'stock_actual'
+        )[:6]
 
         data = {
+            'categorias': [{
+                'id': c.id,
+                'titulo': c.nombre,
+                'subtitulo': "Categoría",
+                'extra': ""
+            } for c in categorias],
+
             'productos': [{
                 'id': p.id,
                 'titulo': p.nombre,
-                'subtitulo': f"{p.cantidad_mg}mg - {p.laboratorio.nombre}",
+                'subtitulo': f"Precio: ${p.precio_venta} | Stock: {p.stock_actual} | Categoria: {p.categoria__nombre}", 
                 'extra': p.codigo_serie
             } for p in productos],
-            
-            'lotes': [{
-                'id': l.id,
-                'titulo': f"Lote: {l.codigo_lote}",
-                'subtitulo': f"Vence: {l.fecha_vencimiento}",
-                'extra': l.producto.nombre
-            } for l in lotes],
-            
-            'laboratorios': [{
-                'id': l.id,
-                'titulo': l.nombre,
-                'subtitulo': l.telefono or "Sin teléfono",
-                'extra': ''
-            } for l in laboratorios]
         }
 
         return Response(data)

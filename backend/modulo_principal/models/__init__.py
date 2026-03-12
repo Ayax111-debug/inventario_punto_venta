@@ -1,9 +1,10 @@
 from .usuarios import UsuarioCustom
-from .inventario import Laboratorio,Producto,Lote
+from .inventario import Producto,Categoria
+from .kardex import MovimientoKardex
 
 
 
 __all__ = [
-    'UsuarioCustom','Laboratorio',
-    'Producto','Lote'
+    'UsuarioCustom',
+    'Producto','Categoria','MovimientoKardex'
 ]

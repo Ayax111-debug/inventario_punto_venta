@@ -2,105 +2,95 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from faker import Faker
 import random
-from datetime import timedelta
-from django.utils import timezone
-# CAMBIA ESTO POR TUS MODELOS REALES
-from modulo_principal.models import Laboratorio, Producto, Lote
+
+# Asegúrate de que la ruta de importación sea la correcta para tu app
+from modulo_principal.models import Producto, Categoria # Adiós a Lote
 
 class Command(BaseCommand):
-    help = 'Seed de alto rendimiento (Bulk Create)'
+    help = 'Seed de alto rendimiento para Minimarket / Botillería (Fricción Cero)'
 
     def handle(self, *args, **kwargs):
         fake = Faker('es_CL')
-        self.stdout.write(self.style.WARNING('Iniciando SEED MASIVO (Modo Turbo)...'))
+        self.stdout.write(self.style.WARNING('Iniciando SEED MASIVO (Modo Minimarket Fricción Cero)...'))
 
-        # Cantidades
-        CANT_LABS = 1000       # No necesitas tantos laboratorios
-        CANT_PRODS = 50000     # 50k productos
-        CANT_LOTES = 150000    # 150k lotes (Total ~200k registros)
+        # Cantidades (ajustables) - 500 es un número súper realista para un minimarket
+        CANT_PRODS = 500  
 
         with transaction.atomic():
             # ==========================================
-            # 1. LABORATORIOS (Bulk Create)
+            # 1. CATEGORÍAS (Rubro Minimarket/Botillería)
             # ==========================================
-            self.stdout.write(f'Generando {CANT_LABS} laboratorios en memoria...')
-            labs_buffer = []
-            for _ in range(CANT_LABS):
-                labs_buffer.append(
-                    Laboratorio(
-                        nombre=f"Laboratorio {fake.unique.company()}",
-                        direccion=fake.address(),
-                        telefono=fake.phone_number()[:15]
-                    )
-                )
+            self.stdout.write('Generando Categorías maestras...')
             
-            # INSERT MASIVO 1
-            Laboratorio.objects.bulk_create(labs_buffer, batch_size=1000)
-            self.stdout.write(self.style.SUCCESS('✓ Laboratorios insertados.'))
+            # Diccionario ajustado al negocio real local
+            mapa_categorias = {
+                'Bebidas y Jugos': ['Coca-Cola 2L', 'Sprite 1.5L', 'Jugo Watts Durazno', 'Agua Mineral Cachantun', 'Gatorade Blue'],
+                'Licores y Cervezas': ['Pisco Mistral 35°', 'Pisco Alto del Carmen 40°', 'Cerveza Cristal Lata', 'Cerveza Escudo', 'Vino Gato Tinto'],
+                'Snacks y Salados': ['Papas Fritas Lays', 'Ramitas de Queso Evercrisp', 'Mani Salado', 'Doritos', 'Cheetos'],
+                'Dulces y Chocolates': ['Super 8', 'Chocolate Trencito', 'Galletas Tritón', 'Gomitas Frugelé', 'Sahne Nuss'],
+                'Abarrotes Básicos': ['Arroz Tucapel', 'Fideos Carozzi', 'Aceite Natura', 'Salsa de Tomate Pomarola', 'Azúcar Iansa'],
+                'Lácteos y Fiambrería': ['Leche Colun Semidescremada', 'Yogur Soprole', 'Queso Gouda Soprole', 'Jamón Pierna San Jorge'],
+                'Aseo del Hogar': ['Cloro Quix', 'Detergente Omo', 'Lavalozas Quix', 'Papel Higiénico Confort', 'Toallas Maravilla'],
+                'Aseo Personal': ['Shampoo Ballerina', 'Jabón Le Sancy', 'Pasta Dental Colgate', 'Desodorante Axe', 'Cepillo de Dientes'],
+                'Congelados': ['Helado Savory', 'Hamburguesas Receta del Abuelo', 'Papas Prefritas', 'Choclo Congelado'],
+                'Panadería': ['Pan Hallulla (Kilo)', 'Pan Marraqueta (Kilo)', 'Pan de Molde Castaño', 'Empanadas de Pino']
+            }
 
-            # TRUCO PRO: Recuperamos solo los IDs para no llenar la RAM con objetos pesados
-            lab_ids = list(Laboratorio.objects.values_list('id', flat=True))
+            categorias_creadas = {}
+            for nombre_cat in mapa_categorias.keys():
+                cat, _ = Categoria.objects.get_or_create(
+                    nombre=nombre_cat,
+                    defaults={'descripcion': f"Productos de la categoría {nombre_cat}"}
+                )
+                categorias_creadas[nombre_cat] = cat
+                
+            self.stdout.write(self.style.SUCCESS(f'✓ {len(categorias_creadas)} Categorías creadas.'))
 
             # ==========================================
-            # 2. PRODUCTOS (Bulk Create)
+            # 2. PRODUCTOS (Fricción Cero con Stock Integrado)
             # ==========================================
             self.stdout.write(f'Generando {CANT_PRODS} productos en memoria...')
             prods_buffer = []
-            nombres_medicina = ['Paracetamol', 'Ibuprofeno', 'Amoxicilina', 'Clorfenamina', 
-                              'Losartán', 'Metformina', 'Omeprazol', 'Salbutamol']
+            
+            # Tamaños o variantes para darle realismo
+            variantes = ['Normal', 'Light', 'Zero', 'Familiar', 'Promo', 'Individual']
 
             for _ in range(CANT_PRODS):
-                # Asignamos ID directamente para evitar queries extra
-                lab_id = random.choice(lab_ids) 
-                nombre_prod = f"{random.choice(nombres_medicina)} {fake.last_name()} {random.randint(100,999)}"
+                # 1. Elegimos una categoría al azar
+                nombre_categoria_elegida = random.choice(list(mapa_categorias.keys()))
+                categoria_obj = categorias_creadas[nombre_categoria_elegida]
+                
+                # 2. Elegimos un producto base
+                producto_base = random.choice(mapa_categorias[nombre_categoria_elegida])
+                
+                # Ejemplo: "Coca-Cola 2L Zero"
+                nombre_prod = f"{producto_base} {random.choice(variantes)}"
+                
+                # Generamos un stock realista para un minimarket
+                stock_generado = random.randint(0, 150)
+                
+                # Lógica Fricción Cero: Si el stock es 0, el producto nace inactivo.
+                estado_activo = stock_generado > 0
 
                 prods_buffer.append(
                     Producto(
-                        laboratorio_id=lab_id, # Usamos _id para asignar el entero directo
+                        categoria=categoria_obj,
                         nombre=nombre_prod,
-                        descripcion=fake.text(max_nb_chars=60),
-                        cantidad_mg=random.choice([10, 50, 100, 500, 1000]),
-                        cantidad_capsulas=random.choice([10, 20, 30, 60]),
-                        es_bioequivalente=random.choice([True, False]),
-                        codigo_serie=fake.ean13(),
-                        precio_venta=random.randint(1000, 25000),
-                        activo=True
+                        descripcion=fake.text(max_nb_chars=80),
+                        # Usamos EAN13 porque es el estándar en supermercados y almacenes
+                        codigo_serie=fake.unique.ean13(), 
+                        # Precios realistas para Chile (entre $500 y $15.000)
+                        precio_venta=random.randint(5, 150) * 100, 
+                        
+                        # NUEVOS CAMPOS DE STOCK DIRECTO
+                        stock_actual=stock_generado,
+                        stock_critico=random.randint(5, 15),
+                        activo=estado_activo
                     )
                 )
 
-            # INSERT MASIVO 2
-            Producto.objects.bulk_create(prods_buffer, batch_size=5000)
-            self.stdout.write(self.style.SUCCESS('✓ Productos insertados.'))
+            # INSERT MASIVO
+            Producto.objects.bulk_create(prods_buffer, batch_size=2000)
+            self.stdout.write(self.style.SUCCESS(f'✓ {CANT_PRODS} Productos insertados con su stock actual (Lotes eliminados).'))
 
-            # Recuperamos IDs de productos
-            prod_ids = list(Producto.objects.values_list('id', flat=True))
-
-            # ==========================================
-            # 3. LOTES (Bulk Create)
-            # ==========================================
-            self.stdout.write(f'Generando {CANT_LOTES} lotes en memoria...')
-            lotes_buffer = []
-
-            for _ in range(CANT_LOTES):
-                prod_id = random.choice(prod_ids)
-                fecha_creacion = fake.date_between(start_date='-2y', end_date='today')
-                dias_vencimiento = random.randint(365, 1095)
-                fecha_vencimiento = fecha_creacion + timedelta(days=dias_vencimiento)
-
-                lotes_buffer.append(
-                    Lote(
-                        producto_id=prod_id,
-                        codigo_lote=f"L-{fake.bothify(text='????-####').upper()}",
-                        fecha_creacion=fecha_creacion,
-                        fecha_vencimiento=fecha_vencimiento,
-                        cantidad=random.randint(50, 5000),
-                        defectuoso=random.choice([True, False, False, False]),
-                        activo=True
-                    )
-                )
-
-            # INSERT MASIVO 3 (Aquí es donde Docker suele sufrir si no usas batch_size)
-            Lote.objects.bulk_create(lotes_buffer, batch_size=5000)
-            self.stdout.write(self.style.SUCCESS('✓ Lotes insertados.'))
-
-        self.stdout.write(self.style.SUCCESS(f'🚀 SEED FINALIZADO: ~{CANT_LABS + CANT_PRODS + CANT_LOTES} registros creados.'))
+        self.stdout.write(self.style.SUCCESS(f'🚀 SEED FINALIZADO: Tu Minimarket tiene {len(categorias_creadas)} Categorías y {CANT_PRODS} Productos listos para vender.'))

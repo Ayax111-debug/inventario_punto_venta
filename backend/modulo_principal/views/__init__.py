@@ -1,8 +1,10 @@
 from .usuariosViews import UsuarioViewSet, UserProfileView
 from .tokenAuthViews import CookieTokenObtainPairView,CookieTokenRefreshView,LogoutView
-from .inventarioViews import ProductoViewSet, LaboratorioViewSet, LoteViewSet,GlobalSearchView
+from .inventarioViews import ProductoViewSet,GlobalSearchView,CategoriaViewSet
+from .kardexViews import MovimientoKardexViewSet
 __all__ = [
     'UsuarioViewSet','UserProfileView',
     'CookieTokenObtainPairView','CookieTokenRefreshView',
-    'LogoutView','ProductoViewSet','LaboratorioViewSet','LoteViewSet','GlobalSearchView'
+    'LogoutView','ProductoViewSet','GlobalSearchView','CategoriaViewSet',
+    'MovimientoKardexViewSet'
 ]

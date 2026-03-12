@@ -27,7 +27,7 @@ const AddButton = React.forwardRef<HTMLButtonElement, AddButtonProps>(
           viewBox="0 0 24 24"
           strokeWidth={2} // Un poco más grueso para que se vea nítido en tamaño pequeño
           stroke="currentColor"
-          className="size-6 black text-white" 
+          className="size-6 black text-emerald-700" 
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
         </svg>
