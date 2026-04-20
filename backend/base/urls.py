@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path,include
-from modulo_principal.views import CookieTokenObtainPairView, CookieTokenRefreshView, LogoutView, UserProfileView
-
+from modulo_principal.views import CookieTokenObtainPairView,CookieTokenRefreshView, LogoutView, UserProfileView
+from modulo_principal.views.tokenAuthViews import CSRFTokenView 
 
 
 urlpatterns = [
@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/', include('punto_venta.urls')),
     
     #vistas de sesión
+    path('api/csrf/', CSRFTokenView.as_view(), name='csrf-token'),
     path('api/token/', CookieTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
     path('api/logout/', LogoutView.as_view(), name='logout'),

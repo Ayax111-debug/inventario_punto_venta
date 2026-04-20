@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from modulo_principal.models import UsuarioCustom
 from modulo_principal.serializers import UsuarioListaSerializer
@@ -9,8 +9,9 @@ from modulo_principal.services.usuarioservices.usuarioservices import UsuarioSer
 
 
 class UsuarioViewSet(viewsets.ModelViewSet):
-    permission_classes = [AllowAny]
-    authentication_classes = []
+    permission_classes = [IsAuthenticated]
+
+    
     queryset = UsuarioCustom.objects.all()
     pagination_class = None
 
@@ -19,7 +20,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
 
 class UserProfileView(APIView):
-    # permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         serializer = UsuarioListaSerializer(request.user)

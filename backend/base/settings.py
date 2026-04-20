@@ -56,8 +56,17 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:8000",
+]
+
 CORS_ALLOW_CREDENTIALS = True
 
+CSRF_COOKIE_NAME = "csrftoken"
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = False  # Cambiar a True en producción (HTTPS)
+CSRF_COOKIE_HTTPONLY = False
 
 ROOT_URLCONF = 'base.urls'
 
@@ -160,6 +169,6 @@ SIMPLE_JWT = {
 AUTH_COOKIE = 'access_token'
 AUTH_COOKIE_REFRESH = 'refresh_token'
 AUTH_COOKIE_SECURE = False #Poner en True en futuro al usar Https
-AUTH_COOKIE_HTTP_ONLY = True
+AUTH_COOKIE_HTTP_ONLY = False
 AUTH_COOKIE_PATH = '/'
 AUTH_COOKIE_SAMESITE = 'Lax'

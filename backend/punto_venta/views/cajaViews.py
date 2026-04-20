@@ -7,7 +7,7 @@ from ..models import SesionCaja
 from ..serializers import SesionCajaSerializer
 from django.db.models.functions import Coalesce
 from rest_framework.pagination import PageNumberPagination
-
+from rest_framework.permissions import IsAuthenticated
 
 
 
@@ -19,6 +19,8 @@ class CajaActivaView(APIView):
     GET: Devuelve la sesión de caja actualmente abierta (si existe).
     POST: Abre una nueva sesión de caja.
     """
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         caja_abierta = SesionCaja.objects.filter(esta_abierta=True).first()
         if caja_abierta:
@@ -46,6 +48,10 @@ class CajaActivaView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class CerrarCajaView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+
     """
     POST: Cierra la sesión de caja actual.
     """
@@ -63,6 +69,9 @@ class CerrarCajaView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class HistorialCajasView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         # 1. Base del Queryset (Igual que antes)
         cajas = SesionCaja.objects.filter(esta_abierta=False).annotate(

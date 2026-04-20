@@ -5,11 +5,25 @@ from rest_framework import status
 from django.conf import settings
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework.permissions import AllowAny
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
+
+
+class CSRFTokenView(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(ensure_csrf_cookie)
+    def get(self, request):
+        return Response({'message': 'CSRF cookie establecida correctamente'})
+
+
 
 
 class CookieTokenObtainPairView(TokenObtainPairView):
     permission_classes =[AllowAny]
 
+
+    
     def post(self, request, *args, **kwargs):
 
         response = super().post(request, *args, **kwargs)

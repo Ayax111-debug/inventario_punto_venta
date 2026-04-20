@@ -1,6 +1,11 @@
 import api from '../api/axios';
 
 export const authService = {
+
+  getCsrfToken: async () => {
+    await api.get('/csrf/');
+  },
+  
   login: async (username: string, password : string) =>{
 
     const response = await api.post('/token/',{username, password});

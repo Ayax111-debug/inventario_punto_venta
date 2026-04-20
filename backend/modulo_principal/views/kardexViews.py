@@ -1,6 +1,6 @@
 from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from modulo_principal.utils.pagination import EstándarPagination
 from modulo_principal.models.kardex import MovimientoKardex
@@ -9,8 +9,9 @@ from modulo_principal.services.kardexservices.kardexservices import KardexServic
 
 
 class MovimientoKardexViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [AllowAny]
-    authentication_classes = []
+    permission_classes = [IsAuthenticated]
+
+    
     serializer_class = MovimientoKardexSerializer
     pagination_class = EstándarPagination
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]

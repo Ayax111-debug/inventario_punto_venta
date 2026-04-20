@@ -20,7 +20,7 @@ class DashboardDiaView(APIView):
     """
     Retorna las métricas clave de ventas de la Sesión de Caja actual (o una histórica).
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         # 1. ¿Queremos ver una caja histórica o la actual?

@@ -19,7 +19,7 @@ from rest_framework.pagination import PageNumberPagination
 
 class VentaViewSet(viewsets.ModelViewSet):
     # En producción deberías usar IsAuthenticated
-    permission_classes = [AllowAny] 
+    permission_classes = [IsAuthenticated]
     
     serializer_class = VentaSerializer
     queryset = Venta.objects.all().select_related('usuario').prefetch_related('detalles__producto')

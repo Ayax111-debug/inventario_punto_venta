@@ -1,36 +1,40 @@
-// services/kardex.service.ts
-import axios from 'axios';
+// frontend/src/services/kardex.service.ts
+import api from '../api/axios';
 import { type MovimientoKardex, type KardexFiltros } from '../domain/models/Kardex';
+import { type PaginatedResponse } from '../components/organisms/Kardex/Kardex';
 
-// IMPORTANTE: Asegúrate de importar la interfaz que creaste en el modal 
-// o usar 'any' temporalmente en el retorno de la promesa si te da error de tipado.
-import { type PaginatedResponse } from '../components/organisms/Kardex/Kardex'; // Ajusta esta ruta a donde tengas tu interfaz
-
-const API_URL = 'http://127.0.0.1:8000/api/kardex/';
+const BASE_URL = '/kardex/';
 
 export const kardexService = {
-    // 1. Cambiamos el tipo de retorno para que acepte el objeto paginado
-    obtenerHistorial: async (filtros: KardexFiltros & { page?: number }): Promise<PaginatedResponse<MovimientoKardex> | MovimientoKardex[]> => {
-        try {
-            const params = new URLSearchParams();
-            if (filtros.producto) params.append('producto', filtros.producto.toString());
-            if (filtros.tipo_movimiento) params.append('tipo_movimiento', filtros.tipo_movimiento);
-            if (filtros.fecha_desde) params.append('fecha__gte', filtros.fecha_desde);
-            if (filtros.fecha_hasta) params.append('fecha__lte', filtros.fecha_hasta);
-            
-            // 👇 AÑADIMOS EL PARÁMETRO PAGE A LA URL
-            if (filtros.page) params.append('page', filtros.page.toString());
+    /**
+     * Obtiene el historial del Kardex con soporte para paginación y filtros.
+     * Al usar nuestra instancia 'api', no necesitamos configurar withCredentials 
+     * ni manejar manualmente el token CSRF o la renovación de sesión.
+     */
+    obtenerHistorial: async (
+        filtros: KardexFiltros & { page?: number }
+    ): Promise<PaginatedResponse<MovimientoKardex>> => {
+        
+        // Mapeamos los filtros del dominio a los parámetros esperados por Django (django-filters)
+        const params: Record<string, any> = {
+            page: filtros.page || 1,
+            producto: filtros.producto,
+            tipo_movimiento: filtros.tipo_movimiento,
+            fecha__gte: filtros.fecha_desde, // El backend espera __gte para 'mayor o igual'
+            fecha__lte: filtros.fecha_hasta  // El backend espera __lte para 'menor o igual'
+        };
 
-            const response = await axios.get(`${API_URL}?${params.toString()}`, {
-                withCredentials: true 
-            });
-            
-            // 🚀 LA CORRECCIÓN: Devolvemos TODO el objeto, no solo los results.
-            return response.data; 
+        // Eliminamos parámetros indefinidos o nulos para limpiar la URL
+        Object.keys(params).forEach(key => 
+            (params[key] === undefined || params[key] === null || params[key] === '') && delete params[key]
+        );
 
-        } catch (error) {
-            console.error("Error al obtener el Kardex:", error);
-            throw error;
-        }
+        const response = await api.get(BASE_URL, { params });
+        
+        /**
+         * Devolvemos el objeto completo (count, next, previous, results)
+         * para que el componente Kardex.tsx pueda manejar la paginación correctamente.
+         */
+        return response.data;
     }
 };
